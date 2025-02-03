@@ -14,6 +14,11 @@ import { images } from "../../constants";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import { Image } from "expo-image";
+
+import { cssInterop } from "nativewind";
+
+cssInterop(Image, { className: "style" });
 
 const Profile = () => {
   const [UserData, setUserData] = useUserDataState();
@@ -24,6 +29,10 @@ const Profile = () => {
     await AsyncStorage.removeItem("isLoggedIn");
     router.replace("/sign-in");
   };
+
+  const blurhash =
+    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+
   return (
     <SafeAreaView className="h-full">
       <ScrollView
@@ -34,17 +43,31 @@ const Profile = () => {
         }}
       >
         <View className=" w-full h-full gap-3 items-center justify-center ">
-          <Avatar.Image
-            source={images.no}
-            size={100}
-            style={{ backgroundColor: "transparent" }}
-            className=""
+          <Image
+            source={
+              UserData.profilePicture
+                ? { uri: UserData.profilePicture }
+                : images.no
+            }
+            placeholder={{ blurhash }}
+            contentFit="contain"
+            transition={1000}
+            // style={{
+            //   width: "200",
+            //   height: "200", // Adjust the height as needed
+            //   backgroundColor: "#055300",
+            //   alignSelf: "center",
+            //   marginVertical: 20,
+            //   borderRadius: 100,
+            // }}
+            className="w-36 h-36 rounded-full self-center my- "
           />
+          
           <View className="mt-2">
             <Text className="text-center font-osbold text-2xl ">
-              {UserData.firstName} {UserData.lastName}
+              {UserData.name}
             </Text>
-            <Text className="text-center text-md font-ossemibold ">
+            <Text className="text-center text-md font-osthin ">
               {UserData.email}
             </Text>
           </View>

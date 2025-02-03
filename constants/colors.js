@@ -4,6 +4,7 @@ const colors = {
     200: "#edf3ff",
     300: "#F7F8F8",
     400: "#E0E0E0",
+    500: "#f0f0f0",
   },
   primary: {
     DEFAULT: "#050316",
@@ -16,7 +17,7 @@ const colors = {
     DEFAULT: "#A6D2FE",
     100: "#edf3ff",
     200: "#95c7fe",
-    300: "#95AEFE",
+    300: "#3b82f6",
     400: "#95adfe",
   },
   blues: {
@@ -36,6 +37,7 @@ const colors = {
     100: "#6d6d6d",
     200: "#232533",
     300: "#050316",
+    400: "#333333",
   },
   accent: {
     DEFAULT: "#fb4a98",

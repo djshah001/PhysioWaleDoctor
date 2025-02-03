@@ -10,14 +10,18 @@ export default function CustomBtn({
   loading,
   disabled,
   iconFirst,
-  customStyles
+  customStyles,
+  secondScheme,
 }) {
   return (
-    <View
-      className={`${customStyles} `}
-    >
+    <View className={`${customStyles} `}>
       <LinearGradient
-        colors={[colors.blueishGreen[500],colors.blueishGreen[100]]} // colors={[ "#56BBF1","#63a4ff"]}
+        // colors={[colors.blueishGreen[500],colors.blueishGreen[100]]}
+        colors={
+          secondScheme
+            ? ["#56BBF1", "#63a4ff"]
+            : [colors.blueishGreen[500], colors.blueishGreen[100]]
+        }
         // locations={[0.2, 0.5, 0.8]}
         start={{
           x: 0.7,
@@ -39,10 +43,12 @@ export default function CustomBtn({
           contentStyle={{
             flexDirection: `${iconFirst ? "row" : "row-reverse"}`,
           }}
-          labelStyle={{
-            // fontFamily: "OpenSans-SemiBold",
-            // fontSize: 14,
-          }}
+          labelStyle={
+            {
+              // fontFamily: "OpenSans-SemiBold",
+              // fontSize: 14,
+            }
+          }
           onPress={() => {
             handlePress();
           }}

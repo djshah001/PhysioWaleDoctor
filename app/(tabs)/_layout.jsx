@@ -25,6 +25,17 @@ const TabsLayout = () => {
             focusedIcon: "barbell",
           }}
         />
+
+        <Tabs.Screen
+          name="Clinic"
+          options={{
+            href: null,
+            title: "Clinic",
+            icon: "medkit-outline",
+            focusedIcon: "medkit",
+          }}
+        />
+
         <Tabs.Screen
           name="profile"
           options={{
@@ -54,12 +65,6 @@ const TabsLayout = () => {
             focusedIcon: "person",
           }}
         />
-        {/* <Tabs.Screen
-          name="(notifications)"
-          options={{
-            href: null,
-          }}
-        /> */}
       </Tabs>
     </>
   );

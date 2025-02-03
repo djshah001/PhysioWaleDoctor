@@ -19,31 +19,22 @@ const Home = () => {
   const [UserData, setUserData] = useUserDataState();
   const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-  const getUserData = async () => {
+  const getLoggedInData = async () => {
+    console.log("first");
     const authToken = await AsyncStorage.getItem("authToken");
 
     const res = await axios.post(
-      `${apiUrl}/api/v/auth/getloggedinuser`,
+      `${apiUrl}/api/v/auth/getLoggedInData/doctor`,
       {},
       { headers: { authToken: authToken } }
     );
+    console.log(res.data);
+    if (res.data.success) {
+      setUserData(res.data.loggedInData);
+    }
     return res;
   };
 
-  useEffect(() => {
-    getUserData().then((userdata) => {
-      // console.log(userdata.data);
-      if (userdata.data.success) {
-        setUserData(userdata.data.user);
-      }
-    });
-    // console.log(UserData);
-  }, []);
-
-  // console.log(`${apiUrl}/images/profilePic/${UserData.profilePic}`);
-
-  const [location, setLocation] = useState(null);
-  // const [locationService, setLocationServices] = useState(null);
   const [RequestStatus, setRequestStatus] = useState(null);
 
   const {
@@ -76,17 +67,14 @@ const Home = () => {
       return;
     }
 
-    // // let location = await Location.getCurrentPositionAsync({});
-    // let i = await Location.getProviderStatusAsync();
-
     // const i = await Location.getForegroundPermissionsAsync()
     // console.log({i:i});
 
     let location = await Location.getCurrentPositionAsync({});
-    setLocation(location);
+    console.log(location);
+    console.log(location);
+    setUserData((prev) => ({ ...prev, location: location.coords }));
   };
-
-  console.log(location);
 
   const [hospitals, setHospitals] = useState([]);
 
@@ -99,8 +87,7 @@ const Home = () => {
 
     // const url = `https://maps.gomaps.pro/maps/api/place/nearbysearch/json?location=${location.coords.latitude},${location.coords.longitude}&radius=${radius}&type=hospital&key=${apiKey}`;
 
-
-    const url = `${apiUrl}/api/v/clinics/nearbyClinics?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&radius=5`;
+    const url = `${apiUrl}/api/v/clinics/nearbyClinics?latitude=${UserData.location.latitude}&longitude=${UserData.location.longitude}&radius=5`;
 
     // console.log(url);
 
@@ -114,13 +101,17 @@ const Home = () => {
   };
 
   useEffect(() => {
+    getLoggedInData();
     getCurrentLocation();
+  }, []);
+
+  useEffect(() => {
     // getNearbyHospitals();
   }, []);
 
   useEffect(() => {
     getNearbyHospitals();
-  }, [location]);
+  }, [UserData.location]);
 
   // console.log(hospitals);
 
@@ -131,11 +122,7 @@ const Home = () => {
           width: "100vw",
         }}
       >
-        <TopBar
-          firstName={UserData.firstName}
-          lastName={UserData.lastName}
-          imageUrl={`${apiUrl}/images/profilePic/${UserData.profilePic}`}
-        />
+        <TopBar name={UserData.name} imageUrl={UserData.profilePic} />
         <HorList data={HorizontalList} />
         <IconMenu />
         <PhysiosNearBy clinics={hospitals} />

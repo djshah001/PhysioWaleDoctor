@@ -51,9 +51,10 @@ const SignIn = () => {
   /* -------------------------------------------------------------------------- */
 
   const handleSignIn = async () => {
+    console.log(form)
     setIsLoading(true);
     try {
-      const res = await axios.post(`${apiUrl}/api/v/auth/signin`, form);
+      const res = await axios.post(`${apiUrl}/api/v/auth/signin/doctor`, form);
       console.log(res.data);
       if (res.data.success) {
         setdata(res.data.authToken);
@@ -84,7 +85,6 @@ const SignIn = () => {
     setIsLoading(false);
   };
 
-  console.log(apiUrl);
 
   /* -------------------------------------------------------------------------- */
   /*                               for Number otp                               */
