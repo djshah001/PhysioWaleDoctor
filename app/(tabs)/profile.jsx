@@ -2,13 +2,10 @@ import {
   View,
   Text,
   ScrollView,
-  Pressable,
   TouchableOpacity,
 } from "react-native";
 import React from "react";
-import { MotiText, MotiView } from "moti";
 import { useUserDataState } from "../../atoms/store";
-import { Avatar, Button, Card } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { images } from "../../constants";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -17,21 +14,18 @@ import { router } from "expo-router";
 import { Image } from "expo-image";
 
 import { cssInterop } from "nativewind";
-
+import { blurhash } from "../../components/Utility/Repeatables";
 cssInterop(Image, { className: "style" });
 
 const Profile = () => {
   const [UserData, setUserData] = useUserDataState();
-  console.log(UserData);
+  // console.log(UserData);
   const SignOut = async () => {
     setUserData({});
     await AsyncStorage.removeItem("authToken");
     await AsyncStorage.removeItem("isLoggedIn");
     router.replace("/sign-in");
   };
-
-  const blurhash =
-    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
   return (
     <SafeAreaView className="h-full">
@@ -45,9 +39,7 @@ const Profile = () => {
         <View className=" w-full h-full gap-3 items-center justify-center ">
           <Image
             source={
-              UserData.profilePicture
-                ? { uri: UserData.profilePicture }
-                : images.no
+              UserData.profilePic ? { uri: UserData.profilePic } : images.no
             }
             placeholder={{ blurhash }}
             contentFit="contain"
@@ -60,9 +52,9 @@ const Profile = () => {
             //   marginVertical: 20,
             //   borderRadius: 100,
             // }}
-            className="w-36 h-36 rounded-full self-center my- "
+            className="w-36 h-36 rounded-full  "
           />
-          
+
           <View className="mt-2">
             <Text className="text-center font-osbold text-2xl ">
               {UserData.name}

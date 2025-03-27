@@ -1,85 +1,71 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ScrollView } from "react-native-gesture-handler";
+import { useToastSate, useUserDataState } from "../../atoms/store";
 import { Button, TextInput } from "react-native-paper";
-import CustomBtn from "../../components/CustomBtn";
-import { router } from "expo-router";
-import useLoadingAndDialog from "../../components/Utility/useLoadingAndDialog";
+import CustomBtn from "../CustomBtn";
 import axios from "axios";
-import AlertBox from "../../components/AlertBox";
-import { useUserDataState, useToastSate } from "../../atoms/store";
-import { apiUrl } from "../../components/Utility/Repeatables";
+import { apiUrl } from "../Utility/Repeatables";
+import { router } from "expo-router";
 
-const VerifyOtp = () => {
+const OtpScreen = () => {
   const [OTP, setOTP] = useState("");
   const [userData, setUserData] = useUserDataState();
-  const emailSplit = userData.email.split("@");
-  const hiddenEmail = userData.email[0] + "***@" + emailSplit[1];
-  const otpRef = useRef(null);
-
   const [toast, setToast] = useToastSate();
+
+  const otpRef = useRef(null);
 
   const handleOTPChange = (otp) => {
     setOTP(otp);
   };
 
   const verifyOTP = async (otp) => {
-    console.log(otp);
+    console.log("verifying otp");
     try {
       const res = await axios.post(`${apiUrl}/api/v/auth/verifyotp`, {
-        phoneNumber: userData.phoneNumber,
+        ...userData,
         otp: otp,
+        countryCode: userData.countryCode,
       });
       console.log(res.data);
       return res.data;
     } catch (error) {
       console.log(error.response.data);
-      return error.response.data;
+      return error.response.data.errors[0].msg;
     }
   };
-
-  const {
-    IsLoading,
-    setIsLoading,
-    Error,
-    setError,
-    visible,
-    showDialog,
-    hideDialog,
-  } = useLoadingAndDialog();
 
   const handleNextPress = async () => {
-    setIsLoading(true);
-    const res = await verifyOTP(OTP);
-    console.log(res);
-    if (res.success) {
-      router.replace({
-        pathname: "/sign-up",
-      });
-    } else {
-      setToast({
-        message: res,
-        visible: true,
-        type: "error",
-      });
-    }
-    setIsLoading(false);
-  };
-
-  const sendEmail = async () => {
+    console.log("pressing next");
     try {
-      const res = await axios.post(`${apiUrl}/api/v/auth/sendemail`, userData);
-      console.log(res.data);
-      if (res.data.success) {
-        setError("Email sent successfully");
-        showDialog();
+      const res = await verifyOTP(OTP);
+
+      console.log(res);
+      if (res.success) {
+        setToast({
+          message: "OTP verified successfully",
+          visible: true,
+          type: "success",
+        });
+        setUserData(res.newRecord);
+        router.replace({
+          pathname: "/sign-up",
+        });
       } else {
-        showDialog();
+        setToast({
+          message: res,
+          visible: true,
+          type: "error",
+        });
       }
     } catch (error) {
-      console.log(error.response.data);
-      showDialog();
+      console.log(error);
     }
+  };
+
+  const handleResendCode = async () => {
+    console.log("resend code op");
   };
 
   useEffect(() => {
@@ -106,17 +92,17 @@ const VerifyOtp = () => {
 
         <View className="w-5/6 justify-center gap-2">
           <Text className="font-pregular text-center text-lg">
-            {`An OTP has been sent to your email address: ${hiddenEmail}`}
+            {`An OTP has been sent to your phone Number:`}
           </Text>
           <TextInput
             ref={otpRef}
             mode="outlined"
-            label="  OTP"
+            label="Enter OTP"
             placeholder="Enter OTP"
             placeholderTextColor="#6d6d6d"
             value={OTP}
             onChangeText={handleOTPChange}
-            keyboardType="decimal-pad"
+            keyboardType="phone-pad"
             activeOutlineColor="#95AEFE"
             outlineColor="#6d6d6d"
             theme={{ roundness: 25 }}
@@ -126,7 +112,7 @@ const VerifyOtp = () => {
           <View className="flex-row justify-center items-center">
             <Text className="font-pmedium">Didn't receive code?</Text>
 
-            <Button onPress={sendEmail}>
+            <Button onPress={handleResendCode}>
               <Text className="text-secondary-200 leading-4 ">Resend code</Text>
             </Button>
           </View>
@@ -145,4 +131,4 @@ const VerifyOtp = () => {
   );
 };
 
-export default VerifyOtp;
+export default OtpScreen;

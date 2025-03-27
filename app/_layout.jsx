@@ -7,10 +7,21 @@ import { useFonts } from "expo-font";
 import { RecoilRoot } from "recoil";
 
 import "../global.css";
-import { PaperProvider } from "react-native-paper";
+import { PaperProvider, DefaultTheme } from "react-native-paper";
 import colors from "../constants/colors";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import CustomToast from "../components/ReUsables/CustomToast";
+import { StatusBar } from "expo-status-bar";
+import CustomActionSheet from "../components/ReUsables/CustomActionSheet";
+import { SheetProvider } from "react-native-actions-sheet";
+
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: "#050316",
+  },
+};
 
 const Rootlayout = () => {
   const [fontsLoaded, error] = useFonts({
@@ -48,38 +59,14 @@ const Rootlayout = () => {
 
   return (
     <RecoilRoot>
-      <PaperProvider>
+      <PaperProvider theme={theme}>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          {/* <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="(notifications)"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="(Self-Test)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="clinics/register"
-              options={{
-                headerShown: false,
-                title: "Register Clinic",
-                animation: "slide_from_bottom",
-                headerTitleStyle: {
-                  fontFamily: "OpenSans-Bold",
-                  // fontWeight: 600,
-                  fontSize: 18,
-                  color: colors.blues[400],
-                  letterSpacing: 1.2,
-                },
-                headerTitleAlign: "center",
-                headerStyle: { height: 40 },
-                // headerTransparent:true,
-              }}
-            />
-          </Stack> */}
-          <Slot />
-          <CustomToast/>
+          <SheetProvider>
+            <Slot />
+            <CustomToast />
+            <StatusBar style="auto" />
+            {/* <CustomActionSheet /> */}
+          </SheetProvider>
         </GestureHandlerRootView>
       </PaperProvider>
     </RecoilRoot>

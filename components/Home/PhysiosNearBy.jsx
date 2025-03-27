@@ -1,79 +1,217 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useMemo } from "react";
+import { View, Text, TouchableOpacity } from "react-native";
 
-const PhysiosNearBy = ({ clinics }) => {
-  const [photos, setPhotos] = useState({}); // To cache photo URLs by `place_id`
-  // const googleApiKey = process.env.EXPO_PUBLIC_GOOGLE_API_KEY; // Replace with your API key
+import { Image } from "expo-image";
+import { BlurView } from "expo-blur";
+import { Link, router } from "expo-router";
+import { cssInterop } from "nativewind";
+import { Icon, IconButton } from "react-native-paper";
 
-  const apikey = "AlzaSy48uzEZAuaR7aq8iKNO8YAC4JxVgSimIzA";
+import colors from "../../constants/colors";
+import { MotiView } from "moti";
+import { Skeleton } from "moti/skeleton";
+import Animated from "react-native-reanimated";
 
-  // Fetch photo for a given `photo_reference`
-  const fetchPhoto = async (photoReference, placeId) => {
-    if (!photoReference) return null;
+cssInterop(Image, { className: "style" });
 
-    const photoUrl = `https://maps.gomaps.pro/maps/api/place/photo?maxwidth=400&photo_reference=${photoReference}&key=${apikey}`;
-    try {
-      const { config } = await axios.get(photoUrl);
-      setPhotos((prevPhotos) => ({
-        ...prevPhotos,
-        [placeId]: config.url, // Use Axios config.url to get the full resolved URL
-      }));
-    } catch (error) {
-      console.error(`Error fetching photo for place_id ${placeId}:`, error);
-    }
-  };
+const PhysiosNearBy = ({ clinics, isLoading }) => {
+  // Memoize date calculations to prevent recalculations on re-renders
+  const { currentDay } = useMemo(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    return { currentDay: days[dayOfWeek] };
+  }, []);
 
-  // Fetch photos when clinics update
-  useEffect(() => {
-    clinics.forEach((clinic) => {
-      if (clinic.photos && clinic.photos.length > 0) {
-        fetchPhoto(clinic.photos[0].photo_reference, clinic.place_id);
-      }
-    });
-  }, [clinics]);
+  const blurhash =
+    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+
+  // Memoize the loading skeleton to prevent unnecessary re-renders
+  const LoadingSkeleton = useMemo(
+    () => (
+      <MotiView
+        transition={{ type: "timing" }}
+        animate={{ backgroundColor: "#f7f8f8" }}
+        className="px-4 w-screen rounded-3xl mb-4 gap-4"
+      >
+        <View className="w-full flex-row items-center justify-between">
+          <Text className="font-osbold text-xl ml-1 mb-1">Physios Near-Me</Text>
+        </View>
+        <MotiView
+          transition={{ type: "timing" }}
+          animate={{ backgroundColor: "#f7f8f8" }}
+          className="w-full rounded-3xl mb-4 gap-5"
+        >
+          <Skeleton
+            colorMode={"light"}
+            width={"100%"}
+            height={280}
+            radius={30}
+          />
+          <Skeleton
+            colorMode={"light"}
+            width={"100%"}
+            height={280}
+            radius={30}
+          />
+        </MotiView>
+      </MotiView>
+    ),
+    []
+  );
+
+  if (isLoading) {
+    return LoadingSkeleton;
+  }
+
+  // Memoize the header component
+  const Header = (
+    <View className="w-full flex-row items-center justify-between">
+      <Text className="font-osbold text-xl ml-1">Physios Near-Me</Text>
+      <TouchableOpacity>
+        <Text className="font-ossemibold text-md text-secondary-300 underline decoration-8 underline-offset-8">
+          See All
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <View className="px-4 w-screen ">
-      <View className="w-full flex-row items-center justify-between">
-        <Text className="font-osbold text-xl ml-1">Physios Near-Me</Text>
-        <TouchableOpacity>
-          <Text className="font-ossemibold text-md text-secondary-300 underline decoration-8 underline-offset-8">
-            See All
-          </Text>
-        </TouchableOpacity>
-      </View>
-      {clinics.map((clinic, i) => (
-        <View
-          key={clinic._id}
-          className={`my-3 gap-3 justify-center bg-white-300 shadow-md shadow-black-200 rounded-3xl `}
-        >
-          <Image
-            source={{
-              uri: photos[clinic.place_id]
-                ? photos[clinic.place_id]
-                : "https://via.placeholder.com/400",
-            }}
-            className=" w-full h-72 rounded-2xl overflow-hidden "
-            resizeMode="cover"
-          />
+    <View className="px-4 gap-2">
+      {Header}
+      {clinics.map((clinic, i) => {
+        const distance = (clinic.distance / 1000).toFixed(1);
+        const opening = clinic.timing[currentDay]?.opening || "N/A";
+        const closing = clinic.timing[currentDay]?.closing || "N/A";
 
-          <View className=" absolute bottom-0 w-full">
-            <View className="px-2 py-4 bg-black-200/50 rounded-b-2xl shadow-xl">
-              {/* Overlayed content */}
-              <View className="p-3 bg-white-300 rounded-2xl">
-                <Text className="text-lg font-psemibold">{clinic.name}</Text>
-                <Text numberOfLines={2}>
-                  {clinic.address || "Address not available"}
-                </Text>
+        return (
+          <MotiView
+            from={{ opacity: 0, translateX: 100 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{
+              type: "spring",
+              duration: 2000,
+              delay: Math.min(100 * i, 500), // Cap the delay to prevent too long animations
+              easing: "easeInOut",
+              damping: 5,
+              stiffness: 200,
+            }}
+            key={clinic._id}
+            className="my-3 gap-3 justify-center bg-white-300 shadow-md shadow-black-200 rounded-[30px] overflow-hidden"
+          >
+            <Animated.Image
+              source={{
+                uri: clinic.images?.[0] || "https://via.placeholder.com/400",
+              }}
+              placeholder={{ blurhash }}
+              contentFit="cover"
+              transition={1000}
+              className="w-full h-80 rounded-3xl overflow-hidden"
+              // sharedTransitionTag={`clinic-image-${clinic._id}`}
+            />
+
+            {/* Top right bookmark button */}
+            <BlurView
+              intensity={15}
+              tint="systemChromeMaterialLight"
+              experimentalBlurMethod="dimezisBlurView"
+              className="absolute top-3 right-2 rounded-full overflow-hidden"
+            >
+              <IconButton
+                icon="bookmark-outline"
+                iconColor={colors.white["500"]}
+                size={24}
+                onPress={() => console.log("Pressed")}
+              />
+            </BlurView>
+
+            {/* Top left distance indicator */}
+            <BlurView
+              intensity={15}
+              tint="systemChromeMaterialLight"
+              experimentalBlurMethod="dimezisBlurView"
+              className="absolute top-3 left-2 rounded-full overflow-hidden flex-row items-center justify-around"
+            >
+              <IconButton
+                icon="map-marker-radius-outline"
+                iconColor={colors.white["500"]}
+                className="bg-white-40 ml-0"
+                size={24}
+                onPress={() => console.log("Pressed")}
+              />
+              <View className="mr-5">
+                <Text className="text-white-500">{distance} km</Text>
               </View>
-            </View>
-          </View>
-          {/* </> */}
-        </View>
-      ))}
+            </BlurView>
+
+            {/* Bottom info panel */}
+            <BlurView
+              intensity={30}
+              tint="systemChromeMaterialDark"
+              experimentalBlurMethod="dimezisBlurView"
+              className="absolute bottom-0 w-full"
+            >
+              <View className="p-3 my-2 rounded-b-3xl shadow-xl flex-row items-center justify-around bg-blac-200/50">
+                <View className="w-9/12 gap-1">
+                  <Text className="text-xs font-oslight text-accent mb-1">
+                    <Icon
+                      source="clock-time-two-outline"
+                      size={12}
+                      color={colors.accent["DEFAULT"]}
+                    />{" "}
+                    {opening} - {closing}
+                  </Text>
+                  <Text className="text-xl font-pbold text-white-400 leading-6">
+                    {clinic.name}
+                  </Text>
+                </View>
+                <BlurView
+                  intensity={20}
+                  tint="systemChromeMaterialLight"
+                  experimentalBlurMethod="dimezisBlurView"
+                  className="rounded-full overflow-hidden"
+                >
+                  <Link 
+                    href={{
+                      pathname: `/clinics/${clinic._id}`,
+                      params: {
+                        clinicId: clinic._id,
+                        distance: distance,
+                      }
+                    }} 
+                    asChild
+                  >
+                    <IconButton
+                      icon="arrow-top-right"
+                      iconColor={colors.white["500"]}
+                      size={30}
+                      // onPress={() =>
+                      //   router.push({
+                      //     pathname: `/clinics/${clinic._id}`,
+                      //     params: {
+                      //       clinicId: clinic._id,
+                      //       distance: distance,
+                      //     },
+                      //   })
+                      // }
+                    />
+                  </Link>
+                </BlurView>
+              </View>
+            </BlurView>
+          </MotiView>
+        );
+      })}
     </View>
   );
 };
 
-export default PhysiosNearBy;
+export default React.memo(PhysiosNearBy);

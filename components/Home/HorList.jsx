@@ -1,6 +1,5 @@
 import { View, Text, Animated, FlatList } from "react-native";
 import React, { useRef, useState } from "react";
-import { HorizontalList } from "../../constants/Data";
 import ListData from "./ListData";
 import Pagination from "../Pagination";
 
@@ -12,10 +11,12 @@ const viewabilityConfig = {
 const HorList = ({ data, descriptionStyles, showIndex }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const ListRef = useRef(null);
-  const scrollX = useRef(new Animated.Value(10)).current;
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   const viewableItemsChanged = useRef(({ viewableItems }) => {
-    setCurrentIndex(viewableItems[0].index);
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index);
+    }
   }).current;
 
   return (
@@ -25,25 +26,22 @@ const HorList = ({ data, descriptionStyles, showIndex }) => {
         ref={ListRef}
         keyExtractor={(item, i) => i.toString()}
         horizontal
-        // bounces={false}
-        pagingEnabled={true}
+        pagingEnabled
         scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
-        renderItem={({ item, index }) => {
-          return (
-            <ListData
-              item={item}
-              index={index}
-              currentIndex={currentIndex}
-              ListRef={ListRef}
-              length={HorizontalList.length}
-              scrollX={scrollX}
-              data={data}
-              descriptionStyles={descriptionStyles}
-              showIndex={showIndex}
-            />
-          );
-        }}
+        renderItem={({ item, index }) => (
+          <ListData
+            item={item}
+            index={index}
+            currentIndex={currentIndex}
+            ListRef={ListRef}
+            length={data.length}
+            scrollX={scrollX}
+            data={data}
+            descriptionStyles={descriptionStyles}
+            showIndex={showIndex}
+          />
+        )}
         onViewableItemsChanged={viewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         onScroll={Animated.event(
@@ -60,7 +58,7 @@ const HorList = ({ data, descriptionStyles, showIndex }) => {
         )}
       />
       {/* <Pagination
-        data={HorizontalList}
+        data={data}
         scrollX={scrollX}
         customStyles="mt-0"
         divColor="#000000"

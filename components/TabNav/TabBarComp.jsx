@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import TabButton from "./TabButton";
-import { MotiView } from "moti";
+import { MotiView, useDynamicAnimation } from "moti";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 
 const TabBarComp = ({ state, descriptors, navigation }) => {
@@ -13,7 +13,19 @@ const TabBarComp = ({ state, descriptors, navigation }) => {
 
   const w = tabBarWidth / state.routes.length;
 
-  const translateVal = useSharedValue(0);
+  const TranslateAnimation = useDynamicAnimation(() => ({
+    left: w / 2 - 25,
+    translateX: 0,
+  }));
+
+  useEffect(() => {
+    TranslateAnimation.animateTo((current) => {
+      return {
+        ...current,
+        left: w / 2 - 25,
+      };
+    });
+  }, [w]);
 
   return (
     <View
@@ -23,13 +35,11 @@ const TabBarComp = ({ state, descriptors, navigation }) => {
       <MotiView
         className={` bg-secondary-200 shadow-md shadow-blue-600 justify-center items-center 
           w-[50px] h-[50px] rounded-full absolute  `}
-        style={{ left: useDerivedValue(() => w / 2 - 25) }}
-        animate={useDerivedValue(() => ({
-          translateX: translateVal.value,
-        }))}
+        // style={{ left: useDerivedValue(() => w / 2 - 25) }}
+        state={TranslateAnimation}
         transition={{
           type: "spring",
-          duration: 1300,
+          duration: 1000,
           stiffness: 200,
           dampingRatio: 0.8,
         }}
@@ -48,7 +58,12 @@ const TabBarComp = ({ state, descriptors, navigation }) => {
         const isFocused = state.index === index;
 
         const onPress = () => {
-          translateVal.value = w * index;
+          TranslateAnimation.animateTo((current) => {
+            return {
+              ...current,
+              translateX: w * index,
+            };
+          });
           const event = navigation.emit({
             type: "tabPress",
             target: route.key,
@@ -79,6 +94,7 @@ const TabBarComp = ({ state, descriptors, navigation }) => {
             label={label}
             tabBarWidth={tabBarWidth}
             index={state.index}
+            TranslateAnimation={TranslateAnimation}
           />
         );
       })}

@@ -33,7 +33,30 @@ const toastAtom = atom({
   default: {
     visible: false,
     message: "",
+    type: "success",
   },
 });
 
 export const useToastSate = () => useRecoilState(toastAtom);
+
+export const actionSheetContentAtom = atom({
+  key: "actionSheetContentAtom",
+  default: null, // Will hold a React component dynamically
+});
+
+export const actionSheetContentState = () =>
+  useRecoilState(actionSheetContentAtom);
+
+export const actionSheetRefAtom = atom({
+  key: "actionSheetRefAtom",
+  default: null, // Stores ref to open/close ActionSheet
+});
+
+export const actionSheetRefState = () => useRecoilState(actionSheetRefAtom);
+
+export const clinicsAtom = atom({
+  key: "clinicsAtom",
+  default: [],
+});
+
+export const useClinicsState = () => useRecoilState(clinicsAtom);

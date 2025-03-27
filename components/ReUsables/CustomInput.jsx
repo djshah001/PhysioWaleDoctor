@@ -1,7 +1,13 @@
 import React from "react";
 import { TextInput } from "react-native-paper";
 import colors from "./../../constants/colors.js";
-import { Keyboard } from "react-native";
+import { Keyboard, Text } from "react-native";
+import { cssInterop, remapProps } from "nativewind";
+
+remapProps(TextInput, {
+  className: "style",
+  contentClassName: "contentStyle",
+});
 export default function CustomInput({
   label,
   placeholder,
@@ -17,6 +23,7 @@ export default function CustomInput({
   customStyles,
   showRightIconBordered,
   editable,
+  noBR,
 }) {
   return (
     <TextInput
@@ -24,7 +31,11 @@ export default function CustomInput({
       editable={editable}
       mode="outlined"
       multiline={multiline || false}
-      label={label}
+      label={
+        <Text className=" font-semibold text-base text-black-200 bg-transparent px-0">
+          {label}
+        </Text>
+      }
       placeholder={placeholder}
       placeholderTextColor="#6d6d6d"
       value={value}
@@ -32,29 +43,36 @@ export default function CustomInput({
       outlineColor="#6B7280"
       keyboardType={keyboardType}
       secureTextEntry={secureTextEntry}
-      contentStyle={{
-        flexGrow: "auto",
-      }}
+      contentClassName={` ${multiline ? "mt-2 " : ""}  `}
+      className=" bg-red-500 "
+      style={{}}
       activeOutlineColor={`${
         activeOutlineColor ? activeOutlineColor : colors.secondary[200]
       }`}
+      textColor={colors.black[300]}
       theme={{
-        roundness: multiline ? 5 : 50,
+        roundness: multiline || noBR ? 8 : 50,
+        colors: {
+          background: colors.white[300],
+        },
+        animation: {},
       }}
       left={
-        <TextInput.Icon
-          icon={leftIcon}
-          size={22}
-          color="#6d6d6d"
-          // color="#f7f7f7"
-          // className="bg-secondary-300"
-        />
+        leftIcon && (
+          <TextInput.Icon
+            icon={leftIcon}
+            size={22}
+            color="#6d6d6d"
+            // color="#f7f7f7"
+            // className="bg-secondary-300"
+          />
+        )
       }
       right={
         rightIcon && (
           <TextInput.Icon
             icon={rightIcon}
-            // color="#6d6d6d"
+            color="#6d6d6d"
             className={`${showRightIconBordered && "bg-secondary-200"}`}
             style={
               showRightIconBordered && {

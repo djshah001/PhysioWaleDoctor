@@ -1,7 +1,6 @@
 import { Text, ScrollView } from "react-native";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import OnBoarding from "./onboarding/onboarding";
 import { Redirect, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -49,7 +48,7 @@ const Index = () => {
   return (
     <SafeAreaView>
       {IsAppFirstOpened ? (
-        <OnBoarding />
+        <Redirect href="/onboarding" />
       ) : IsLoggedIn ? (
         <Redirect href="/home" />
       ) : (

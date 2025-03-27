@@ -3,6 +3,16 @@ import React from "react";
 import { View } from "react-native";
 import { Button } from "react-native-paper";
 import colors from "../constants/colors";
+import { cssInterop } from "nativewind";
+
+cssInterop(Button, {
+  className: "style",
+});
+
+const colorTheme = {
+  1: ["#56BBF1", "#63a4ff"],
+  2: [colors.blueishGreen[500], colors.blueishGreen[100]],
+};
 export default function CustomBtn({
   title,
   iconName,
@@ -11,17 +21,13 @@ export default function CustomBtn({
   disabled,
   iconFirst,
   customStyles,
-  secondScheme,
+  colorScheme,
 }) {
   return (
     <View className={`${customStyles} `}>
       <LinearGradient
         // colors={[colors.blueishGreen[500],colors.blueishGreen[100]]}
-        colors={
-          secondScheme
-            ? ["#56BBF1", "#63a4ff"]
-            : [colors.blueishGreen[500], colors.blueishGreen[100]]
-        }
+        colors={colorTheme[colorScheme] || colorTheme[1]}
         // locations={[0.2, 0.5, 0.8]}
         start={{
           x: 0.7,

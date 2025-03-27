@@ -11,7 +11,7 @@ const TabsLayout = () => {
     <>
       <Tabs
         tabBar={(props) => <TabBarComp {...props} />}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false,animation:"shift" }}
       >
         <Tabs.Screen
           name="home"
@@ -29,7 +29,7 @@ const TabsLayout = () => {
         <Tabs.Screen
           name="Clinic"
           options={{
-            href: null,
+            // Remove href: null to allow proper navigation
             title: "Clinic",
             icon: "medkit-outline",
             focusedIcon: "medkit",

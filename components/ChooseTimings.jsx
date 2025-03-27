@@ -105,38 +105,6 @@ export function ChooseTimings({ data, setData }) {
         contentContainerClassName=" gap-2 my-3 "
         showsHorizontalScrollIndicator={false}
       >
-        {/* <BottomSheetFlatList
-          horizontal
-          data={Object.keys(data.timing)}
-          className=" p-2 "
-          showsHorizontalScrollIndicator={false} // keyExtractor={keyExtractor}
-          renderItem={({ item }) => {
-            return (
-              <TouchableOpacity
-                key={item}
-                className={`${
-                  ActiveDay === item
-                    ? "bg-blues-400 text-white-100 "
-                    : "bg-white-200"
-                } w-[85px] h-[80px] rounded-xl p-2 mr-3 items-center justify-center shadow-lg shadow-black-300 `}
-                onPress={() => {
-                  setActiveDay(item);
-                }}
-              >
-                <Text
-                  className={`text-center font-osregular ${
-                    ActiveDay === item ? "text-white-200" : "text-black-200"
-                  } `}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {item.toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            );
-          }} // estimatedItemSize={43.3}
-        /> */}
-
         {Object.keys(data.timing).map((item, index) => {
           return (
             <TouchableOpacity

@@ -5,18 +5,20 @@ import HorList from "../../components/Home/HorList";
 import { TestSteps } from "../../constants/Data";
 import axios from "axios";
 import { router } from "expo-router";
+import { apiUrl } from "../../components/Utility/Repeatables";
+import { Appbar } from "react-native-paper";
+import colors from "../../constants/colors";
 
 const SelfTest = () => {
   const [selfTestCategories, setselfTestCategories] = useState([]);
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
   const getSelfTestCategories = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/v/selfTestCategories`);
+      const response = await axios.get(`${apiUrl}/api/v/self-test/categories`);
       console.log(response.data);
       setselfTestCategories(response.data.allSelfTestCategories);
     } catch (error) {
-      console.error(error);
+      console.error(error.response.data);
     }
   };
 
@@ -24,19 +26,42 @@ const SelfTest = () => {
     getSelfTestCategories();
   }, []);
 
-  // Helper function to capitalize the first letter
-  const capitalizeFirstLetter = (string) => {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  };
-
   return (
-    <SafeAreaView className="h-full">
+    <SafeAreaView className="h-full bg-white-300">
       <ScrollView
         contentContainerStyle={{
           width: "100vw",
           // backgroundColor: "#fff",
         }}
       >
+        <Appbar.Header
+          mode="center-aligned"
+          // safeAreaInsets={{ bottom }}
+          elevated={true}
+          // elevation={3}
+          className=" mt-[-25px] "
+          style={{
+            // height: 60,
+            backgroundColor: colors.white[300],
+            // marginTop:-20,
+            // paddingVertical:10
+          }}
+        >
+          <Appbar.BackAction
+            onPress={() => {
+              router.back();
+            }}
+          />
+          <Appbar.Content
+            title={
+              <Text className="text-2xl font-psemibold text-black-200 ">
+                Self Test
+              </Text>
+            }
+          />
+          {/* <Appbar.Action icon="calendar" onPress={() => {}} />
+        <Appbar.Action icon="magnify" onPress={() => {}} /> */}
+        </Appbar.Header>
         <HorList
           data={TestSteps}
           showIndex={true}
@@ -53,26 +78,26 @@ const SelfTest = () => {
             {selfTestCategories.map((item) => (
               <TouchableOpacity
                 key={item._id}
-                className=" min-[320px]:w-[30%] items-center mb-2"
+                className=" min-[320px]:w-[23%] items-center mb-2"
                 onPress={() =>
                   router.push({
                     pathname: "/questions/".concat(item._id),
                     params: {
                       categoryId: item._id,
-                      title: capitalizeFirstLetter(item.name),
+                      title: item.name,
                     },
                   })
                 }
               >
-                <View className="bg-white-100 p-2 w-24 h-24 mb-2 rounded-xl shadow-black-200 shadow-lg ">
+                <View className="bg-white-100 w-20 h-20 mb-1 rounded-xl shadow-black-200 shadow-lg items-center justify-center">
                   <Image
                     source={{ uri: item.imgUrl }}
-                    className="w-full h-full mix-blend-color-burn"
+                    className="w-12 h-12 mix-blend-color-burn"
                     resizeMode="contain"
                   />
                 </View>
-                <Text className="text-center text-gray-600 text-sm font-psemibold leading-5 ">
-                  {capitalizeFirstLetter(item.name)}
+                <Text className="text-center text-gray-700 text-xs font-psemibold leading-5 capitalize ">
+                  {item.name}
                 </Text>
               </TouchableOpacity>
             ))}

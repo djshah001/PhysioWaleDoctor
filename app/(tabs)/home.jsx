@@ -1,8 +1,13 @@
 import { View, Text, ScrollView } from "react-native";
-import React, { useEffect, useState } from "react";
-import TopBar from "../../components/Home/TopBar";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useUserDataState } from "../../atoms/store";
+import { useClinicsState, useToastSate, useUserDataState } from "../../atoms/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
@@ -14,120 +19,196 @@ import useLoadingAndDialog from "../../components/Utility/useLoadingAndDialog";
 
 import * as Location from "expo-location";
 import { HorizontalList } from "../../constants/Data";
+import { Appbar } from "react-native-paper";
+import colors from "../../constants/colors";
+import { router, useFocusEffect } from "expo-router";
+import { apiUrl } from "../../components/Utility/Repeatables";
 
 const Home = () => {
   const [UserData, setUserData] = useUserDataState();
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-
-  const getLoggedInData = async () => {
-    console.log("first");
-    const authToken = await AsyncStorage.getItem("authToken");
-
-    const res = await axios.post(
-      `${apiUrl}/api/v/auth/getLoggedInData/doctor`,
-      {},
-      { headers: { authToken: authToken } }
-    );
-    console.log(res.data);
-    if (res.data.success) {
-      setUserData(res.data.loggedInData);
-    }
-    return res;
-  };
-
+  const [Clinics, setClinics] = useClinicsState();
+  const [toast, setToast] = useToastSate();
+  const [hospitals, setHospitals] = useState([]);
   const [RequestStatus, setRequestStatus] = useState(null);
+  const initialLoadRef = useRef(false);
 
-  const {
-    IsLoading,
-    setIsLoading,
-    visible,
-    showDialog,
-    hideDialog,
-    Error,
-    setError,
-  } = useLoadingAndDialog();
+  const [IsLoading, setIsLoading] = useState(false);
 
-  const getCurrentLocation = async () => {
+  // Memoize the welcome message to prevent re-renders
+  const welcomeMessage = useMemo(
+    () => (
+      <View>
+        <Text className="text-sm leading-4 font-bold text-gray-600">
+          Hi, Welcome Back!
+        </Text>
+        <Text className="text-xl leading-6 font-pbold text-black-200">
+          {UserData.name}
+        </Text>
+      </View>
+    ),
+    [UserData.name]
+  );
+
+  // Optimize API calls with useCallback
+  const getLoggedInData = useCallback(async () => {
+    const authToken = await AsyncStorage.getItem("authToken");
+    if (!authToken) {
+      router.replace("/sign-in");
+      return;
+    }
+
+    try {
+      const res = await axios.post(
+        `${apiUrl}/api/v/auth/getLoggedInData/doctor`,
+        {},
+        { headers: { authToken } }
+      );
+      if (res.data.success) {
+        setUserData(res.data.loggedInData);
+      }
+      return res;
+    } catch (error) {
+      console.error(error?.response?.data || error);
+      await AsyncStorage.multiRemove(["authToken", "isLoggedIn"]);
+      router.replace("/sign-in");
+    }
+  }, [setUserData]);
+
+  const getCurrentLocation = useCallback(async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
-    console.log(status);
     setRequestStatus(status);
 
     if (status !== "granted") {
-      setError("Permission to access location was denied");
-      showDialog();
+      setToast({
+        title: "Location Permission Denied",
+        visible: true, // FIXED
+        type: "error",
+      });
       return;
     }
 
     const providerStatus = await Location.getProviderStatusAsync();
     if (!providerStatus.locationServicesEnabled) {
-      setError(
-        "Location services (GPS) are disabled. Please enable them to proceed."
-      );
-      showDialog();
+      setToast({
+        title: "Location Services are disabled",
+        visible: true, // FIXED
+        type: "error",
+      });
       return;
     }
 
-    // const i = await Location.getForegroundPermissionsAsync()
-    // console.log({i:i});
+    try {
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
 
-    let location = await Location.getCurrentPositionAsync({});
-    console.log(location);
-    console.log(location);
-    setUserData((prev) => ({ ...prev, location: location.coords }));
-  };
+      setUserData((prev) =>
+        prev?.location?.latitude !== location.coords.latitude ||
+        prev?.location?.longitude !== location.coords.longitude
+          ? { ...prev, location: location.coords }
+          : prev
+      );
+    } catch (error) {
+      console.error("Location error:", error);
+      setToast({
+        title: "Location Permission Denied",
+        visible: true, // FIXED
+        type: "error",
+      });
+    }
+  }, [setUserData]);
 
-  const [hospitals, setHospitals] = useState([]);
+  const getNearbyHospitals = useCallback(async () => {
+    if (!UserData?.location?.latitude || !UserData?.location?.longitude) return;
 
-  const getNearbyHospitals = async () => {
-    // const userLocation = await Location.getCurrentPositionAsync({});
-    // setLocation(userLocation.coords);
-
-    // const apiKey = "AlzaSy48uzEZAuaR7aq8iKNO8YAC4JxVgSimIzA";
-    // const radius = 5000; // 5 km
-
-    // const url = `https://maps.gomaps.pro/maps/api/place/nearbysearch/json?location=${location.coords.latitude},${location.coords.longitude}&radius=${radius}&type=hospital&key=${apiKey}`;
-
+    setIsLoading(true);
     const url = `${apiUrl}/api/v/clinics/nearbyClinics?latitude=${UserData.location.latitude}&longitude=${UserData.location.longitude}&radius=5`;
-
-    // console.log(url);
 
     try {
       const response = await axios.get(url);
-      // console.log({ res: response.data });
-      setHospitals(response.data.clinics);
+      setClinics(response.data.clinics || []);
     } catch (error) {
-      console.error(error);
+      console.error(error?.response?.data || error);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [UserData?.location?.latitude, UserData?.location?.longitude]);
 
-  useEffect(() => {
-    getLoggedInData();
-    getCurrentLocation();
-  }, []);
+  // Use useFocusEffect to handle focus events more efficiently
+  useFocusEffect(
+    useCallback(() => {
+      if (!UserData || Object.keys(UserData).length === 0) {
+        getLoggedInData();
+        getCurrentLocation();
+        initialLoadRef.current = true;
+      }
+    }, [getLoggedInData, getCurrentLocation])
+  );
 
-  useEffect(() => {
-    // getNearbyHospitals();
-  }, []);
+  // Only run when location actually changes
+  // useEffect(() => {
+  //   if (UserData?.location?.latitude && UserData?.location?.longitude) {
+  //     getNearbyHospitals();
+  //   }
+  // }, [UserData]);
 
-  useEffect(() => {
-    getNearbyHospitals();
-  }, [UserData.location]);
+  useFocusEffect(
+    useCallback(() => {
+      if (UserData?.location?.latitude && UserData?.location?.longitude) {
+        getNearbyHospitals();
+      }
+    }, [UserData?.location?.latitude, UserData?.location?.longitude])
+  );
 
-  // console.log(hospitals);
+  // Use useMemo for the hospital list to prevent unnecessary re-renders
+  // const memoizedHospitals = useMemo(() => hospitals, [hospitals]);
+
+  // Memoize the app bar actions to prevent re-renders
+  const appBarActions = useMemo(
+    () => (
+      <>
+        <Appbar.Action
+          icon="bell-outline"
+          color={colors.black[300]}
+          onPress={() => router.push("/notifications")}
+        />
+        <Appbar.Action
+          icon="qrcode-scan"
+          onPress={() => router.push("Scanner/Scan")}
+        />
+      </>
+    ),
+    []
+  );
+
+  // Logs true for both empty and non-empty objects
+  // To check if object has properties, use Object.keys(UserData).length > 0
+  // Logs true if UserData object exists and has properties, false if it's null/undefined
+  // console.log(!!UserData);
+
+  console.log(Clinics.length);
 
   return (
-    <SafeAreaView className="h-full">
-      <ScrollView
-        contentContainerStyle={{
-          width: "100vw",
-        }}
-      >
-        <TopBar name={UserData.name} imageUrl={UserData.profilePic} />
-        <HorList data={HorizontalList} />
-        <IconMenu />
-        <PhysiosNearBy clinics={hospitals} />
+    <SafeAreaView className="bg-white-300">
+      <ScrollView className="flex-grow">
+        <Appbar.Header
+          statusBarHeight={0}
+          style={{
+            backgroundColor: colors.white[300],
+          }}
+        >
+          <Appbar.Content title={welcomeMessage} />
+          {appBarActions}
+        </Appbar.Header>
+
+        <View className="gap-4">
+          <HorList data={HorizontalList} />
+          <IconMenu />
+          <PhysiosNearBy clinics={Clinics} isLoading={IsLoading} />
+          <View className="mb-10" style={{ height: 90 }} />
+        </View>
       </ScrollView>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </SafeAreaView>
   );
 };

@@ -7,7 +7,7 @@ const SelfTestLayout = () => {
       <Stack.Screen
         name="Self-Test"
         options={{
-          // headerShown: false,
+          headerShown: false,
 
           headerTitleStyle: {
             fontFamily: "OpenSans-Bold",
@@ -23,7 +23,7 @@ const SelfTestLayout = () => {
       <Stack.Screen
         name="questions/[question]"
         options={{
-          // headerShown: false,
+          headerShown: false,
         }}
       />
     </Stack>

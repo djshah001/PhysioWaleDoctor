@@ -29,7 +29,7 @@ const ListData = ({
           <Text
             className={`font-pregular text-[10px] text-white-300 mx-2 ${descriptionStyles}`}
             numberOfLines={3}
-            adjustsFontSizeToFit
+            // adjustsFontSizeToFit
           >
             {item.description}
           </Text>
