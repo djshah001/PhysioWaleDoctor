@@ -185,9 +185,14 @@ const SignIn = () => {
             iconName="arrow-right"
             handlePress={handlePhoneVerification}
             loading={IsLoading}
-            customStyles="mt-2"
-            colorScheme={2}
             // disabled={!isValid || phoneNumber.length < 10}
+            useGradient={true}
+            // gradientColors={["#56bbf1", "#63a4ff"]}
+            gradientColors={[
+              colors.blueishGreen[500],
+              colors.blueishGreen[100],
+            ]}
+            iconPosition="right"
           />
 
           <View className="mt-4 justify-center items-center w-full">

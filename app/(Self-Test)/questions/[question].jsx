@@ -41,7 +41,7 @@ const QuestionScreen = () => {
     setIsLoading(true);
     try {
       const response = await axios.get(
-        `${apiUrl}/api/v/questions/by-category?id=${categoryId}`
+        `${apiUrl}/api/v/self-test/questions/by-category?id=${categoryId}`
       );
       setQuestions(response.data.data);
       console.log(response.data.data);

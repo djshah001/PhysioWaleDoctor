@@ -1,17 +1,24 @@
-import { View, Text, Animated, FlatList } from "react-native";
-import React, { useRef, useState } from "react";
+import { View, Text, Animated, FlatList, Dimensions } from "react-native";
+import React, { useRef, useState, useMemo } from "react";
 import ListData from "./ListData";
 import Pagination from "../Pagination";
 
-const viewabilityConfig = {
-  minimumViewTime: 300,
-  viewAreaCoveragePercentThreshold: 10,
-};
+// Get the screen width to ensure one item per screen
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const HorList = ({ data, descriptionStyles, showIndex }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const ListRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  // Memoize viewabilityConfig to prevent recreation on each render
+  const viewabilityConfig = useMemo(
+    () => ({
+      minimumViewTime: 300,
+      viewAreaCoveragePercentThreshold: 50,
+    }),
+    []
+  );
 
   const viewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) {
@@ -19,8 +26,11 @@ const HorList = ({ data, descriptionStyles, showIndex }) => {
     }
   }).current;
 
+  // Calculate the adjusted width to account for parent padding
+  const adjustedWidth = SCREEN_WIDTH - 24; // Subtract the total horizontal padding (16px on each side)
+
   return (
-    <>
+    // <View className="w-full">
       <FlatList
         data={data}
         ref={ListRef}
@@ -29,6 +39,9 @@ const HorList = ({ data, descriptionStyles, showIndex }) => {
         pagingEnabled
         scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
+        snapToInterval={adjustedWidth}
+        decelerationRate={0.9}
+        snapToAlignment="center"
         renderItem={({ item, index }) => (
           <ListData
             item={item}
@@ -40,6 +53,7 @@ const HorList = ({ data, descriptionStyles, showIndex }) => {
             data={data}
             descriptionStyles={descriptionStyles}
             showIndex={showIndex}
+            screenWidth={adjustedWidth}
           />
         )}
         onViewableItemsChanged={viewableItemsChanged}
@@ -57,13 +71,7 @@ const HorList = ({ data, descriptionStyles, showIndex }) => {
           { useNativeDriver: false }
         )}
       />
-      {/* <Pagination
-        data={data}
-        scrollX={scrollX}
-        customStyles="mt-0"
-        divColor="#000000"
-      /> */}
-    </>
+    // </View>
   );
 };
 

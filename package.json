@@ -7,15 +7,17 @@
     "startc": "expo start -c",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "clean": "rm -rf node_modules && npm cache clean --force && npm install"
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.0.6",
     "@react-native-async-storage/async-storage": "1.23.1",
-    "@react-native-community/datetimepicker": "8.2.0",
+    "@react-native-community/datetimepicker": "^7.6.2",
     "@react-navigation/drawer": "^7.1.1",
     "@shopify/flash-list": "1.7.3",
     "axios": "^1.7.7",
+    "date-fns": "^4.1.0",
     "expo": "~52.0.38",
     "expo-blur": "~14.0.3",
     "expo-camera": "~16.0.18",
@@ -29,6 +31,8 @@
     "expo-router": "~4.0.19",
     "expo-status-bar": "~2.0.1",
     "libphonenumber-js": "^1.12.6",
+    "metro": "^0.80.0",
+    "metro-resolver": "^0.80.0",
     "moti": "^0.29.0",
     "nativewind": "^4.1.23",
     "physiowale-doctors": "file:",
@@ -38,6 +42,7 @@
     "react-native-actions-sheet": "^0.9.7",
     "react-native-country-codes-picker": "^2.3.5",
     "react-native-gesture-handler": "~2.20.2",
+    "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-paper": "^5.12.5",
     "react-native-paper-dates": "^0.22.27",
     "react-native-paper-dropdown": "^2.3.1",
@@ -47,7 +52,8 @@
     "react-native-svg": "15.8.0",
     "react-native-vector-icons": "^10.2.0",
     "recoil": "^0.7.7",
-    "tailwindcss": "^3.4.15"
+    "tailwindcss": "^3.4.15",
+    "yup": "^1.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

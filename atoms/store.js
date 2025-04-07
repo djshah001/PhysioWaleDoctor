@@ -41,7 +41,7 @@ export const useToastSate = () => useRecoilState(toastAtom);
 
 export const actionSheetContentAtom = atom({
   key: "actionSheetContentAtom",
-  default: null, // Will hold a React component dynamically
+  default: null,
 });
 
 export const actionSheetContentState = () =>
@@ -49,14 +49,26 @@ export const actionSheetContentState = () =>
 
 export const actionSheetRefAtom = atom({
   key: "actionSheetRefAtom",
-  default: null, // Stores ref to open/close ActionSheet
+  default: null,
 });
 
 export const actionSheetRefState = () => useRecoilState(actionSheetRefAtom);
 
+// Initialize clinicsAtom with proper type safety
 export const clinicsAtom = atom({
   key: "clinicsAtom",
   default: [],
+  effects: [
+    ({ setSelf }) => {
+      // Ensure the state is always an array
+      setSelf((current) => {
+        if (!Array.isArray(current)) {
+          return [];
+        }
+        return current;
+      });
+    },
+  ],
 });
 
 export const useClinicsState = () => useRecoilState(clinicsAtom);

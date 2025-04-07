@@ -2,10 +2,11 @@ import React, { useCallback, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import CustomInput from "./ReUsables/CustomInput";
 import CustomBtn from "./CustomBtn";
-import { Checkbox } from "react-native-paper";
+import { Checkbox, Portal } from "react-native-paper";
 import colors from "../constants/colors";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ScrollView } from "react-native-gesture-handler";
+import { format, parse } from "date-fns";
 
 export function ChooseTimings({ data, setData }) {
   const [SameTime, setSameTime] = useState(false);
@@ -14,20 +15,25 @@ export function ChooseTimings({ data, setData }) {
   const [ShowTimePicker, setShowTimePicker] = useState(false);
   const [isOpeningTime, setIsOpeningTime] = useState(true);
 
+  // Create a date object from a time string (h:mm a)
+  const getTimeDate = (timeString) => {
+    if (!timeString) return new Date();
+    try {
+      return parse(timeString, "h:mm a", new Date());
+    } catch (error) {
+      return new Date();
+    }
+  };
+
   const onChange = (event, selectedDate) => {
-    // const selectedTime = selectedDate.toLocaleTimeString([], {
-    //   hour: "2-digit",
-    //   minute: "2-digit",
-    // });
+    if (event.type === "dismissed" || !selectedDate) {
+      setShowTimePicker(false);
+      return;
+    }
 
-    const selectedTime = selectedDate.toLocaleTimeString();
+    // Format time as h:mm a (12-hour with AM/PM) for both storage and display
+    const formattedTime = format(selectedDate, "h:mm a");
 
-    console.log(
-      selectedDate.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    );
     setSameTime(false);
     setData((prev) => ({
       ...prev,
@@ -36,7 +42,7 @@ export function ChooseTimings({ data, setData }) {
         ...prev.timing,
         [ActiveDay]: {
           ...prev.timing[ActiveDay],
-          [isOpeningTime ? "opening" : "closing"]: selectedTime,
+          [isOpeningTime ? "opening" : "closing"]: formattedTime,
           isClosed: false,
         },
       },
@@ -53,8 +59,8 @@ export function ChooseTimings({ data, setData }) {
           ...acc,
           [day]: {
             ...prev.timing[day],
-            opening: "00:00",
-            closing: "00:00",
+            opening: "12:00 AM",
+            closing: "11:59 PM",
             isClosed: false,
           },
         };
@@ -72,12 +78,10 @@ export function ChooseTimings({ data, setData }) {
         [ActiveDay]: {
           ...prev.timing[ActiveDay],
           isClosed: !prev.timing[ActiveDay].isClosed,
-          opening: !prev.timing[ActiveDay].isClosed
-            ? "00:00"
-            : prev.timing[ActiveDay].opening,
-          closing: !prev.timing[ActiveDay].isClosed
-            ? "00:00"
-            : prev.timing[ActiveDay].closing,
+          opening: prev.timing[ActiveDay].opening || "09:00",
+          closing: prev.timing[ActiveDay].closing || "18:00",
+          openingDisplay: prev.timing[ActiveDay].openingDisplay || "9:00 AM",
+          closingDisplay: prev.timing[ActiveDay].closingDisplay || "6:00 PM",
         },
       },
     }));
@@ -95,10 +99,30 @@ export function ChooseTimings({ data, setData }) {
     }
   };
 
+  // Get display time or convert from 24h format if not available
+  const getDisplayTime = (day, timeType) => {
+    const timeKey =
+      timeType === "opening" ? "openingDisplay" : "closingDisplay";
+    const timeValue = data.timing[day][timeType];
+
+    if (data.timing[day][timeKey]) {
+      return data.timing[day][timeKey];
+    }
+
+    if (!timeValue) return "";
+
+    try {
+      const date = parse(timeValue, "HH:mm", new Date());
+      return format(date, "h:mm a");
+    } catch (error) {
+      return timeValue;
+    }
+  };
+
   return (
     <ScrollView contentContainerClassName="p-4 ">
       <Text className="text-center font-bold text-xl mb-2 ">
-        Choose Timigs 🎉
+        Choose Timings 🎉
       </Text>
       <ScrollView
         horizontal
@@ -129,8 +153,6 @@ export function ChooseTimings({ data, setData }) {
             </TouchableOpacity>
           );
         })}
-
-        {/* <View className="bg-purple-500 w-1/6 h-[200px] "></View> */}
       </ScrollView>
       <View className=" p-4 gap-3  ">
         <Text className="font-ossemibold text-2xl text-center ">
@@ -140,27 +162,29 @@ export function ChooseTimings({ data, setData }) {
         <CustomInput
           editable={false}
           label="Opening Time"
-          value={data.timing[ActiveDay].opening}
+          value={data.timing[ActiveDay].opening || ""}
           leftIcon="clock-time-three-outline"
           rightIcon="arrow-top-right"
           rightPress={() => {
-            setShowTimePicker(true);
             setIsOpeningTime(true);
+            setShowTimePicker(true);
           }}
           showRightIconBordered={true}
+          placeholder="Select opening time"
         />
 
         <CustomInput
           editable={false}
-          label="closing Time"
-          value={data.timing[ActiveDay].closing}
+          label="Closing Time"
+          value={data.timing[ActiveDay].closing || ""}
           leftIcon="clock-time-three-outline"
           rightIcon="arrow-top-right"
           rightPress={() => {
-            setShowTimePicker(true);
             setIsOpeningTime(false);
+            setShowTimePicker(true);
           }}
           showRightIconBordered={true}
+          placeholder="Select closing time"
         />
 
         <View className="  self-center  ">
@@ -197,20 +221,24 @@ export function ChooseTimings({ data, setData }) {
             />
 
             <Text className="font-osregular text-black-200 text-sm ">
-              same timings for all days ?
+              Same timings for all days?
             </Text>
           </View>
         </View>
       </View>
       {ShowTimePicker && (
-        <DateTimePicker
-          testID="dateTimePicker"
-          value={new Date()}
-          mode="time"
-          display="spinner"
-          // is24Hour={true}
-          onChange={onChange}
-        />
+        <Portal>
+          <DateTimePicker
+            testID="dateTimePicker"
+            value={getTimeDate(
+              data.timing[ActiveDay][isOpeningTime ? "opening" : "closing"]
+            )}
+            mode="time"
+            is24Hour={false}
+            display="spinner"
+            onChange={onChange}
+          />
+        </Portal>
       )}
     </ScrollView>
   );
