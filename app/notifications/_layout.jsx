@@ -1,10 +1,19 @@
 import { Stack } from "expo-router";
 import React from "react";
+// Modal screen options
+const modalScreenOptions = {
+  headerShown: false,
+  presentation: "modal",
+  animation: "slide_from_bottom",
+  contentStyle: { backgroundColor: 'white' },
+  animationDuration: 300,
+};
 
 const NotificationsLayout = () => {
   return (
     <Stack
       screenOptions={{
+        ...modalScreenOptions,
         headerTitleStyle: {
           fontFamily: "OpenSans-Bold",
           fontSize: 24,
@@ -13,8 +22,6 @@ const NotificationsLayout = () => {
         },
         headerTitleAlign: "center",
         headerStyle: { height: 80 },
-        presentation: "formSheet",
-        animation: "slide_from_right",
       }}
     >
       <Stack.Screen

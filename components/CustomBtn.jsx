@@ -20,6 +20,9 @@ export default function CustomBtn({
   gradientColors = [colors.secondary[200], colors.secondary[300]],
   gradientStart = { x: 0, y: 0 },
   gradientEnd = { x: 1, y: 0 },
+  bgColor,
+  borderColor,
+  textColor,
 }) {
   // Define gray colors since they're missing from colors file
   const grayColors = {
@@ -28,18 +31,21 @@ export default function CustomBtn({
   };
 
   const getBackgroundColor = () => {
+    if (bgColor) return bgColor;
     if (disabled) return grayColors[300];
     if (variant === "filled" && !useGradient) return colors.secondary[300];
     return "transparent";
   };
 
   const getTextColor = () => {
+    if (textColor) return textColor;
     if (disabled) return grayColors[500];
     if (variant === "filled") return colors.white[300];
     return colors.secondary[300];
   };
 
   const getBorderColor = () => {
+    if (borderColor) return borderColor;
     if (disabled) return grayColors[300];
     return colors.secondary[300];
   };

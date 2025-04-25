@@ -11,12 +11,23 @@ const TabsLayout = () => {
     <>
       <Tabs
         tabBar={(props) => <TabBarComp {...props} />}
-        screenOptions={{ headerShown: false,animation:"shift" }}
+        screenOptions={{ 
+          headerShown: false,
+          animation: "shift"
+           
+        }}
+        // // This tells Expo Router to preserve the active tab when navigating back
+        // // It will remember which tab was active and return to it
+        // initialRouteName="home"
+        // backBehavior="history"
+
       >
         <Tabs.Screen
           name="home"
           options={{ title: "Home", icon: "home-outline", focusedIcon: "home" }}
         />
+        
+        {/* Rest of your tabs remain unchanged */}
         <Tabs.Screen
           name="workouts"
           options={{
@@ -29,7 +40,6 @@ const TabsLayout = () => {
         <Tabs.Screen
           name="Clinic"
           options={{
-            // Remove href: null to allow proper navigation
             title: "Clinic",
             icon: "medkit-outline",
             focusedIcon: "medkit",
@@ -39,27 +49,6 @@ const TabsLayout = () => {
         <Tabs.Screen
           name="profile"
           options={{
-            // headerShown: true,
-            // headerTitleStyle: {
-            //   fontFamily: "OpenSans-Bold",
-            //   // fontWeight: 600,
-            //   fontSize: 24,
-            //   color: "#5CAFFF",
-            //   letterSpacing: 1.2,
-            // },
-            // headerTitleAlign: "center",
-            // headerStyle: { height: 80 },
-
-            // headerTransparent: true,
-            // headerLeft: () => (
-            //   <TouchableOpacity
-            //     onPress={() => router.back()}
-            //     style={{ marginLeft: 10 }}
-            //   >
-            //     <Ionicons name="arrow-undo" size={25} color="#5CAFFF" />
-            //   </TouchableOpacity>
-            // ),
-
             title: "Profile",
             icon: "person-outline",
             focusedIcon: "person",

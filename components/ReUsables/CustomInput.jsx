@@ -40,7 +40,7 @@ export default function CustomInput({
         multiline={multiline || false}
         numberOfLines={numberOfLines || 1}
         label={
-          <Text className=" font-semibold text-base text-black-200 bg-transparent px-0">
+          <Text className=" font-semibold text-base text-black-700 bg-transparent px-0">
             {label}
           </Text>
         }
@@ -61,7 +61,7 @@ export default function CustomInput({
               ? activeOutlineColor 
               : colors.secondary[200]
         }`}
-        textColor={colors.black[300]}
+        textColor={colors.black[700]}
         theme={{
           roundness: multiline || noBR ? 8 : 50,
           colors: {

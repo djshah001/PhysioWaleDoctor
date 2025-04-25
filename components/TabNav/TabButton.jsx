@@ -58,7 +58,7 @@ export default function TabButton({
           duration: 350,
         }}
         className={`text-[11px] ${
-          isFocused ? "text-white-300" : "text-black-100"
+          isFocused ? "text-white-300" : "text-black-500"
         }`}
       >
         {label}

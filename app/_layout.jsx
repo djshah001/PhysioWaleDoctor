@@ -1,8 +1,16 @@
 import { View, Text } from "react-native";
 import React, { useEffect, useState } from "react";
 
-import { Slot, SplashScreen, Stack } from "expo-router";
+import { SplashScreen, Stack } from "expo-router";
 import { useFonts } from "expo-font";
+
+// Define default screen options
+const defaultScreenOptions = {
+  headerShown: false,
+  animation: "slide_from_right",
+  contentStyle: { backgroundColor: 'white' },
+  animationDuration: 300,
+};
 
 import { RecoilRoot } from "recoil";
 
@@ -62,7 +70,19 @@ const Rootlayout = () => {
       <PaperProvider theme={theme}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <SheetProvider>
-            <Slot />
+            <Stack screenOptions={defaultScreenOptions}>
+              <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+              <Stack.Screen name="appointments" />
+              <Stack.Screen name="clinics" />
+              <Stack.Screen name="profile" />
+              <Stack.Screen name="analytics" />
+              <Stack.Screen name="notifications" />
+              <Stack.Screen name="Scanner" />
+              <Stack.Screen name="(Self-Test)" />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="index" options={{ animation: "fade" }} />
+            </Stack>
             <CustomToast />
             <StatusBar style="auto" />
             {/* <CustomActionSheet /> */}

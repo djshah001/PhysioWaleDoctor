@@ -1,9 +1,11 @@
 import React from "react";
 import { Stack } from "expo-router";
+import { defaultScreenOptions } from "../../constants/navigationConfig";
+// import { defaultScreenOptions } from "../../constants/navigationConfig";
 
 const SelfTestLayout = () => {
   return (
-    <Stack>
+    <Stack screenOptions={defaultScreenOptions}>
       <Stack.Screen
         name="Self-Test"
         options={{

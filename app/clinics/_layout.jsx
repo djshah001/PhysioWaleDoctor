@@ -1,19 +1,25 @@
 import { Stack } from "expo-router";
 import React from "react";
 import colors from "../../constants/colors";
+// Import default screen options
+const defaultScreenOptions = {
+  headerShown: false,
+  animation: "slide_from_right",
+  contentStyle: { backgroundColor: 'white' },
+  animationDuration: 300,
+};
 
 const ClinicLayout = () => {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
+        ...defaultScreenOptions,
         contentStyle: { backgroundColor: colors.white[300] },
-        // animation: "slide_from_right",
       }}
     >
-      
+
       <Stack.Screen
-        name="[clinic]"
+        name="[clinicId]"
         options={{
         //   headerShown: false,
           animation: "ios_from_right",

@@ -19,12 +19,12 @@ const CountryPickerWithIP = ({
         <TextInput
           mode="outlined"
           label={
-            <Text className=" font-semibold text-base text-black-200 bg-transparent px-0">
+            <Text className=" font-semibold text-base text-black-600 bg-transparent px-0">
               Phone Number
             </Text>
           }
           placeholder="Enter your phone number"
-          placeholderTextColor={colors.black[100]}
+          placeholderTextColor={colors.black[600]}
           value={phoneNumber}
           onChangeText={handlePhoneNumberChange}
           keyboardType="phone-pad"
@@ -45,8 +45,8 @@ const CountryPickerWithIP = ({
             },
             animation: {},
           }}
-          textColor={colors.black[300]}
-          left={<TextInput.Icon icon="phone" color={colors.black[100]} />} // style={styles.textInput}
+          textColor={colors.black[700]}
+          left={<TextInput.Icon icon="phone" color={colors.black[600]} />} // style={styles.textInput}
           // left={<TextInput.Affix text={countryCallingCode} />}
           // style={{
           //   height: "50px",

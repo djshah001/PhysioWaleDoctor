@@ -13,52 +13,47 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { FlashList } from "@shopify/flash-list";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  useUserDataState,
-  useToastSate,
-  useClinicsState,
-} from "./../../atoms/store.js";
-import CustomBtn from "./../../components/CustomBtn.jsx";
+import { useUserDataState, useToastSate } from "./../../atoms/store.js";
 import colors from "./../../constants/colors.js";
 import { Image } from "expo-image";
 import { cssInterop } from "nativewind";
-import { blurhash } from "../../components/Utility/Repeatables.jsx";
-import { Appbar, Icon, IconButton, Chip, Badge } from "react-native-paper";
+import { Appbar, Card, Icon } from "react-native-paper";
 import axios from "axios";
 import { apiUrl } from "../../components/Utility/Repeatables.jsx";
-import * as Location from "expo-location";
-import ClinicItem from "../../components/Home/ClinicItem.jsx";
-import HorList from "../../components/Home/HorList.jsx";
-import IconMenu from "../../components/Home/IconMenu.jsx";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
-import { HorizontalList } from "../../constants/Data.js";
+
+// Import analytics components
+import DoctorAnalytics from "../../components/Analytics/DoctorAnalytics";
+import ClinicSummary from "../../components/Analytics/ClinicSummary";
+import RevenueCard from "../../components/Analytics/RevenueCard";
+import UpcomingAppointments from "../../components/Analytics/UpcomingAppointments";
+import { LinearGradient } from "expo-linear-gradient";
 
 cssInterop(Image, { className: "style" });
 cssInterop(Appbar, { className: "style" });
-
-
+cssInterop(Card, { className: "style" });
 
 const Home = () => {
   const [UserData, setUserData] = useUserDataState();
-  const [Clinics, setClinics] = useClinicsState();
   const [setToast] = useToastSate();
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const initialLoadRef = useRef(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   // Memoize the welcome message to prevent re-renders
   const welcomeMessage = useMemo(
     () => (
       <View>
-        <Text className="text-sm leading-4 font-bold text-gray-600">
+        <Text className="text-sm leading-4 font-bold text-gray-100">
           Hi, Welcome Back!
         </Text>
-        <Text className="text-xl leading-6 font-pbold text-black-200">
+        <Text className="text-xl leading-6 font-pbold text-white-200">
           {UserData?.name}
         </Text>
       </View>
@@ -91,9 +86,8 @@ const Home = () => {
         }
       );
 
-      console.log(response.data);
       if (response.data.success) {
-        setUserData(response.data.loggedInData);
+        setUserData({ ...response.data.loggedInData, authToken: authToken });
       }
     } catch (error) {
       console.error("Error fetching user data:", error.response?.data || error);
@@ -110,73 +104,104 @@ const Home = () => {
     }
   }, [setUserData, setToast]);
 
-  // Get current location
-  const getCurrentLocation = useCallback(async () => {
-    setRefreshing(true);
-
-    // Check for location permissions
-    let { status } = await Location.requestForegroundPermissionsAsync();
-
-    if (status !== "granted") {
-      setToast({
-        title: "Location Permission Denied",
-        visible: true,
-        type: "error",
-      });
-      setRefreshing(false);
-      return;
-    }
-
+  // Function to fetch analytics data
+  const fetchAnalyticsData = useCallback(async () => {
     try {
-      let location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      setAnalyticsLoading(true);
+      const authToken = await AsyncStorage.getItem("authToken");
+      if (!authToken) {
+        setAnalyticsLoading(false);
+        return;
+      }
 
-      setUserData((prev) =>
-        prev?.location?.latitude !== location.coords.latitude ||
-        prev?.location?.longitude !== location.coords.longitude
-          ? { ...prev, location: location.coords }
-          : prev
+      const response = await axios.get(
+        `${apiUrl}/api/v/doctor-analytics/dashboard`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
       );
+
+      if (response.data.success) {
+        setAnalyticsData(response.data.data);
+      } else {
+        throw new Error("Failed to fetch analytics data");
+      }
     } catch (error) {
-      console.error("Location error:", error);
+      console.error(
+        "Error fetching analytics data:",
+        error.response?.data || error.message
+      );
       setToast({
-        title: "Location Permission Denied",
         visible: true,
+        message: "Failed to fetch analytics data",
         type: "error",
       });
+
+      // Set fallback mock data for development/demo purposes
+      setAnalyticsData({
+        upcomingAppointments: [
+          {
+            _id: "1",
+            patientName: "John Smith",
+            patientImage: "https://randomuser.me/api/portraits/men/32.jpg",
+            date: new Date().toISOString(),
+            time: new Date().toISOString(),
+            status: "confirmed",
+            clinicName: "City Physiotherapy Center",
+          },
+          {
+            _id: "2",
+            patientName: "Sarah Johnson",
+            patientImage: "https://randomuser.me/api/portraits/women/44.jpg",
+            date: new Date(Date.now() + 86400000).toISOString(),
+            time: new Date(Date.now() + 86400000).toISOString(),
+            status: "pending",
+            clinicName: "City Physiotherapy Center",
+          },
+        ],
+        appointmentStats: {
+          total: 45,
+          completed: 23,
+          thisMonth: 12,
+          averageRating: 4.7,
+          byStatus: {
+            pending: 5,
+            confirmed: 12,
+            completed: 23,
+            cancelled: 3,
+            rejected: 1,
+            expired: 1,
+          },
+        },
+        revenue: {
+          total: 145000,
+          thisMonth: 32000,
+          lastMonth: 28000,
+          growth: 14.3,
+        },
+        clinics: [
+          {
+            _id: "1",
+            name: "City Physiotherapy Center",
+            address: "123 Main St, Bangalore, Karnataka",
+            rating: 4.8,
+            appointmentsCount: 45,
+          },
+          {
+            _id: "2",
+            name: "Downtown Rehab Clinic",
+            address: "456 Park Ave, Mumbai, Maharashtra",
+            rating: 4.5,
+            appointmentsCount: 32,
+          },
+        ],
+      });
     } finally {
-      setRefreshing(false);
+      setAnalyticsLoading(false);
     }
-  }, [setUserData, setToast]);
-
-  // Get nearby hospitals
-  const getNearbyHospitals = useCallback(async () => {
-    if (!UserData?.location?.latitude || !UserData?.location?.longitude) {
-      setRefreshing(false);
-      return;
-    }
-
-    setIsLoading(true);
-    const url = `${apiUrl}/api/v/clinics/nearby?latitude=${UserData.location.latitude}&longitude=${UserData.location.longitude}&radius=5`;
-
-    try {
-      const response = await axios.get(url);
-      setClinics(response.data.data.clinics || []);
-    } catch (error) {
-      console.error(error?.response?.data || error);
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
-    }
-  }, [UserData?.location?.latitude, UserData?.location?.longitude, setClinics]);
-
-  // Use useEffect to handle location changes
-  useEffect(() => {
-    if (UserData?.location?.latitude && UserData?.location?.longitude) {
-      getNearbyHospitals();
-    }
-  }, [UserData?.location, getNearbyHospitals]);
+  }, [setToast]);
 
   // Use useFocusEffect to handle initial load only
   useFocusEffect(
@@ -184,10 +209,10 @@ const Home = () => {
       // Only run on initial load, not on every focus
       if (!UserData || Object.keys(UserData).length === 0) {
         getLoggedInData();
-        getCurrentLocation();
         initialLoadRef.current = true;
+        fetchAnalyticsData();
       }
-    }, [getLoggedInData, getCurrentLocation])
+    }, [getLoggedInData, fetchAnalyticsData])
   );
 
   // Memoize the app bar actions to prevent re-renders
@@ -196,11 +221,12 @@ const Home = () => {
       <>
         <Appbar.Action
           icon="bell-outline"
-          color={colors.black[300]}
+          color={colors.white[300]}
           onPress={() => router.push("/notifications")}
         />
         <Appbar.Action
           icon="qrcode-scan"
+          color={colors.white[300]}
           onPress={() => router.push("Scanner/Scan")}
         />
       </>
@@ -208,84 +234,71 @@ const Home = () => {
     []
   );
 
-  // Create a ListHeaderComponent for FlashList
-  const ListHeaderComponent = useCallback(
-    () => (
-      <View className="gap-4">
-        <HorList data={HorizontalList} />
-        <IconMenu />
-        <View className="px-4 mt-2">
-          <Text className="text-xl font-pbold text-black-200">
-            Nearby Clinics
-          </Text>
-          <Text className="text-sm font-oslight text-gray-600">
-            Find clinics near your location
-          </Text>
-        </View>
-      </View>
-    ),
-    []
-  );
-
   // Create a dedicated refresh function
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    getCurrentLocation();
-  }, [getCurrentLocation]);
+    getLoggedInData();
+    fetchAnalyticsData();
+    setTimeout(() => setRefreshing(false), 1000); // Simulate network delay
+  }, [getLoggedInData, fetchAnalyticsData]);
+
+  // console.log(analyticsData.remainingClinicsCount);
 
   return (
-    <SafeAreaView className="bg-white-300 flex-1">
-      <Appbar.Header
-        // mode="center-aligned"
-        statusBarHeight={0}
-        className="bg-white-300"
+    <View className="bg-white-300 flex-1">
+      <StatusBar style="light" translucent />
+      <LinearGradient
+        colors={[colors.secondary[250], colors.secondary[300]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ paddingVertical: 5 }}
+        className="rounded-b-2xl shadow-md overflow-hidden mb-2"
       >
-        <Appbar.Content title={welcomeMessage} />
-        {appBarActions()}
-      </Appbar.Header>
+        <Appbar.Header className="bg-transparent">
+          <Appbar.Content title={welcomeMessage} />
+          {appBarActions()}
+        </Appbar.Header>
+      </LinearGradient>
 
       <View className="flex-1">
-        <FlashList
-          data={Clinics}
-          renderItem={({ item, index }) => (
-            <ClinicItem clinic={item} index={index} IsLoading={refreshing} />
-          )}
-          estimatedItemSize={400}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingBottom: 60, paddingHorizontal: 16 }}
-          showsVerticalScrollIndicator={false}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-          ListHeaderComponent={ListHeaderComponent}
-          ListEmptyComponent={
-            <View className="flex-1 justify-center items-center px-6 py-10">
-              <View className="bg-white-400 rounded-3xl p-8 shadow-lg items-center w-full max-w-md">
-                <Icon
-                  source="map-search"
-                  size={80}
-                  color={colors.blueishGreen[500]}
-                />
-                <Text className="text-2xl text-center text-black-200 font-pbold mt-6 mb-2">
-                  No Clinics Nearby
-                </Text>
-                <Text className="text-center text-black-300 mb-6">
-                  We couldn't find any clinics near your current location. Try
-                  increasing the search radius or check your location settings.
-                </Text>
-                <CustomBtn
-                  title="Refresh Location"
-                  iconName="refresh"
-                  handlePress={getCurrentLocation}
-                  customStyles="w-full"
-                  secondScheme={true}
-                />
-              </View>
-            </View>
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
-        />
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 90 }}
+        >
+          {isLoading || analyticsLoading ? (
+            <View className="flex-1 justify-center items-center py-10">
+              <ActivityIndicator
+                size="large"
+                color={colors.accent["DEFAULT"]}
+              />
+              <Text className="mt-4 font-pmedium text-gray-600">
+                Loading your dashboard...
+              </Text>
+            </View>
+          ) : (
+            <>
+              {analyticsData && (
+                <>
+                  <UpcomingAppointments
+                    appointments={analyticsData.upcomingAppointments}
+                  />
+
+                  <DoctorAnalytics stats={analyticsData.appointmentStats} />
+                  <RevenueCard revenue={analyticsData.revenue} />
+                  <ClinicSummary
+                    clinics={analyticsData.clinics}
+                    remainingClinicsCount={analyticsData.remainingClinicsCount}
+                  />
+                </>
+              )}
+            </>
+          )}
+        </ScrollView>
       </View>
-      <StatusBar style="inverted" />
-    </SafeAreaView>
+    </View>
   );
 };
 
