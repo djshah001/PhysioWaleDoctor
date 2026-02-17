@@ -8,7 +8,7 @@ registerTranslation("en-GB", enGB);
 const DatePicker = ({ date, setDate,endYear }) => {
   
   return (
-    <View className="px- py-8  ">
+    <View className=" ">
       <DatePickerInput
         mode="outlined"
         label='  Date'

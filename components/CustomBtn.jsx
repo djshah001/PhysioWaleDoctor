@@ -1,8 +1,12 @@
 import React from "react";
-import { TouchableOpacity, Text, ActivityIndicator, View } from "react-native";
+import { TouchableOpacity, Text, ActivityIndicator, View, Platform } from "react-native";
 import colors from "../constants/colors";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { cssInterop } from "nativewind";
+
+// Enable NativeWind for LinearGradient
+cssInterop(LinearGradient, { className: "style" });
 
 export default function CustomBtn({
   title,
@@ -52,32 +56,42 @@ export default function CustomBtn({
 
   const iconColorToUse = iconColor || getTextColor();
 
+  // Platform-specific shadow class for iOS
+  const iosShadowClass = variant === "filled" || useGradient
+    ? "shadow-md shadow-black/20"
+    : "";
+
+  // Platform-specific elevation style for Android
+  const androidElevation = (variant === "filled" || useGradient) && Platform.OS === "android"
+    ? { elevation: 4 }
+    : {};
+
   const ButtonContent = () => (
     <>
       {loading ? (
         <ActivityIndicator color={getTextColor()} size="small" />
       ) : (
-        <View className="flex-row items-center justify-center">
+        <View className="flex-row items-center justify-center space-x-2">
           {iconName && iconPosition === "left" && (
             <MaterialCommunityIcons
               name={iconName}
               size={iconSize}
               color={iconColorToUse}
-              style={{ marginRight: 8 }}
             />
           )}
-          <Text
-            className={`text-center font-psemibold text-base ${textClassName}`}
-            style={{ color: getTextColor() }}
-          >
-            {title}
-          </Text>
+          {title && (
+            <Text
+              className={`text-center font-psemibold text-base ${textClassName}`}
+              style={{ color: getTextColor() }}
+            >
+              {title}
+            </Text>
+          )}
           {iconName && iconPosition === "right" && (
             <MaterialCommunityIcons
               name={iconName}
               size={iconSize}
               color={iconColorToUse}
-              style={{ marginLeft: 8 }}
             />
           )}
         </View>
@@ -90,26 +104,15 @@ export default function CustomBtn({
     return (
       <TouchableOpacity
         onPress={!disabled && !loading ? handlePress : null}
-        className={`rounded-full ${className} overflow-hidden`}
-        activeOpacity={0.8}
-        style={{
-          shadowColor: gradientColors[1],
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 5,
-          elevation: 6,
-          backgroundColor: "transparent", // Ensure background is visible
-        }}
+        activeOpacity={0.7}
+        className={`rounded-full overflow-hidden ${className} ${Platform.OS === "ios" ? iosShadowClass : ""}`}
+        style={androidElevation}
       >
         <LinearGradient
           colors={gradientColors}
           start={gradientStart}
           end={gradientEnd}
-          className={`py-4 px-4 flex-row items-center justify-center rounded-full`}
-          style={{
-            borderWidth: 0,
-            minHeight: 50, // Ensure minimum height for visibility
-          }}
+          className="py-3.5 px-4 flex-row items-center justify-center min-h-[50px]"
         >
           <ButtonContent />
         </LinearGradient>
@@ -118,23 +121,20 @@ export default function CustomBtn({
   }
 
   // Regular button without gradient
+  const borderWidth = variant === "outlined" ? "border-2" : "border-0";
+  const bgColorStyle = { backgroundColor: getBackgroundColor() };
+  const borderColorStyle = { borderColor: getBorderColor() };
+
   return (
     <TouchableOpacity
       onPress={!disabled && !loading ? handlePress : null}
-      className={`py-3 px-4 rounded-full flex-row items-center justify-center ${className}`}
-      activeOpacity={0.8}
-      style={{
-        backgroundColor: getBackgroundColor(),
-        borderColor: getBorderColor(),
-        borderWidth: variant === "outlined" ? 2 : 0,
-        shadowColor:
-          variant === "filled" ? colors.secondary[300] : "transparent",
-        shadowOffset: { width: 0, height: variant === "filled" ? 3 : 0 },
-        shadowOpacity: variant === "filled" ? 0.2 : 0,
-        shadowRadius: variant === "filled" ? 4 : 0,
-        elevation: variant === "filled" ? 4 : 0,
-        minHeight: 50, // Ensure minimum height for visibility
-      }}
+      activeOpacity={0.7}
+      className={`py-3 px-4 rounded-full flex-row items-center justify-center ${borderWidth} min-h-[50px] ${className} ${Platform.OS === "ios" ? iosShadowClass : ""}`}
+      style={[
+        bgColorStyle,
+        borderColorStyle,
+        androidElevation
+      ]}
     >
       <ButtonContent />
     </TouchableOpacity>

@@ -242,4 +242,4 @@ export function ChooseTimings({ data, setData }) {
       )}
     </ScrollView>
   );
-}
+} 

@@ -48,7 +48,7 @@ const OtpScreen = () => {
           visible: true,
           type: "success",
         });
-        setUserData(res.newRecord);
+        setUserData({ ...res.newRecord, id: res.id });
         router.replace({
           pathname: "/sign-up",
         });

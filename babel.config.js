@@ -9,11 +9,19 @@ module.exports = function (api) {
         },
       ],
     ],
-    env: {
-      production: {
-        plugins: ["react-native-paper/babel"],
-      },
-    },
-    // plugins: ["nativewind/babel", "react-native-reanimated/plugin"]
+    plugins: [
+      // "nativewind/babel",
+      "react-native-reanimated/plugin",
+      "react-native-paper/babel",
+      [
+        "module-resolver",
+        {
+          root: ["./"],
+          alias: {
+            "~": "./",
+          },
+        },
+      ],
+    ],
   };
 };

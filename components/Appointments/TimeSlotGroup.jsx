@@ -27,7 +27,7 @@ const TimeSlotGroup = ({
           iconColor={colors.secondary[300]}
           style={{ margin: 0 }}
         />
-        <Text className="font-ossemibold text-md text-black-400 ml-1">
+        <Text className="font-ossemibold text-md text-black-700 ml-1">
           {title}
         </Text>
       </View>
@@ -39,9 +39,9 @@ const TimeSlotGroup = ({
             disabled={!slot.available}
             className={`py-2 px-4 rounded-lg border ${
               selectedSlot?.id === slot.id
-                ? "bg-secondary-300 border-secondary-400"
+                ? "bg-secondary-300 border-white-100"
                 : slot.available
-                ? "bg-white-300 border-secondary-100"
+                ? "bg-white-400 border-secondary-100"
                 : "bg-white-200 border-white-300"
             }`}
           >
@@ -50,8 +50,8 @@ const TimeSlotGroup = ({
                 selectedSlot?.id === slot.id
                   ? "text-white-100"
                   : slot.available
-                  ? "text-black-300"
-                  : "text-black-200"
+                  ? "text-black-700"
+                  : "text-black-300"
               }`}
             >
               {slot.time}

@@ -23,18 +23,18 @@ const InfoCard = ({
       <View className="flex-row items-center mb-2">
         <View
           className="rounded-full p-2 mr-2"
-          style={{ backgroundColor: `${colors.secondary[100]}40` }}
+          style={{ backgroundColor: `${colors.primary[100]}` }}
         >
           <Icon source={icon} size={18} color={colors.secondary[300]} />
         </View>
-        <Text className="text-sm font-ossemibold text-black-300">{title}</Text>
+        <Text className="text-sm font-ossemibold text-black-800">{title}</Text>
       </View>
       <View className="flex-row justify-between items-center">
         <View className="flex-1">
-          <Text className="text-base font-pbold text-black-400">{value}</Text>
+          <Text className="text-base font-pbold text-black-600">{value}</Text>
           {subtitle && (
             <Text
-              className="text-xs font-osregular text-black-300 mt-1 "
+              className="text-xs font-osregular text-black-600 mt-1 "
               numberOfLines={2}
             >
               {subtitle}
@@ -46,7 +46,7 @@ const InfoCard = ({
             onPress={onAction}
             className="ml-2 bg-secondary-100 p-2 rounded-full"
           >
-            <Icon source={actionIcon} size={16} color={colors.secondary[300]} />
+            <Icon source={actionIcon} size={16} color={colors.secondary[400]} />
           </TouchableOpacity>
         )}
       </View>

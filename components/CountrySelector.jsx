@@ -26,6 +26,7 @@ function ListHeaderComponent({ countries, lang, onPress }) {
     </View>
   );
 }
+
 export function CountrySelector({ country, setCountry }) {
   const [show, setShow] = useState(false);
   return (
@@ -52,24 +53,17 @@ export function CountrySelector({ country, setCountry }) {
         >
           {country.code}
         </Text>
-        {/* <FontAwesome name="chevron-down" size={16} color="#565656" /> */}
       </TouchableOpacity>
 
       <CountryPicker
-        show={show} // when picker button press you will get the country object with dial code
+        show={show}
         style={{
-          // Styles for whole modal [View]
           modal: {
             height: 500,
-            // backgroundColor: "red",
           },
-          // Styles for modal backdrop [View]
           backdrop: {},
-          // Styles for bottom input line [View]
           line: {},
-          // Styles for list of countries [FlatList]
           itemsList: {},
-          // Styles for input [TextInput]
           textInput: {
             height: 50,
             borderRadius: 0,
@@ -77,23 +71,16 @@ export function CountrySelector({ country, setCountry }) {
             borderRadius: 10,
             paddingHorizontal: 10,
           },
-          // Styles for country button [TouchableOpacity]
           countryButtonStyles: {
             height: 50,
           },
-          // Styles for search message [Text]
           searchMessageText: {},
-          // Styles for search message container [View]
           countryMessageContainer: {},
-          // Flag styles [Text]
           flag: {},
-          // Dial code styles [Text]
           dialCode: {},
-          // Country name styles [Text]
           countryName: {},
         }}
         pickerButtonOnPress={(item) => {
-          // console.log(item);
           setCountry({ code: item.dial_code, flag: item.flag });
           setShow(false);
         }}
