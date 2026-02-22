@@ -201,6 +201,17 @@ export interface Clinic {
   updatedAt?: string;
 }
 
+export interface ClinicSummary extends Clinic {
+  doctorMetrics: {
+    totalAppointments: number;
+    completedAppointments: number;
+    upcomingAppointments: number;
+    totalRevenueGenerated: number;
+    averageRating: number;
+    totalReviews: number;
+  };
+}
+
 export interface Appointment {
   _id: string;
   patient: string | Patient;
@@ -223,7 +234,7 @@ export interface Appointment {
   paymentStatus: "pending" | "paid" | "refunded" | "failed";
   symptoms?: string;
   diagnosis?: string;
-  isCompleted: boolean;
+
   rating?: {
     stars: number;
     comment?: string;
@@ -240,6 +251,7 @@ export interface PopulatedAppointment extends Omit<
   clinic: Clinic;
   doctor: Doctor;
   service: Service;
+  verificationCode?: string; // only visible to doctor via +verificationCode select
 }
 
 export interface AppointmentStats {
@@ -253,15 +265,124 @@ export interface AppointmentStats {
   totalRevenue: number;
 }
 
+export interface DashboardAppointment {
+  _id: string;
+  patientName: string;
+  patientImage: string | null;
+  date: string; // ISO from startDateTime
+  time: string; // formatted HH:MM
+  status: string;
+  clinicName: string;
+  serviceName: string | null;
+  appointmentType: "In-Clinic" | "Home-Visit" | "Video-Call";
+}
+
 export interface DashboardData {
-  clinics: Clinic[];
-  upcomingAppointments: PopulatedAppointment[];
   todayStats: {
-    totalAppointments: number;
-    completedAppointments: number;
-    pendingAppointments: number;
-    totalEarnings: number;
+    total: number;
+    completed: number;
+    pending: number;
+    revenue: number;
   };
+  appointmentStats: {
+    total: number;
+    trend: number;
+    byStatus: {
+      pending: number;
+      confirmed: number;
+      completed: number;
+      cancelled: number;
+      rejected: number;
+      expired: number;
+    };
+  };
+  revenue: {
+    thisPeriod: number;
+    lastPeriod: number;
+    growth: number;
+    allTime: number;
+  };
+  ratings: {
+    average: number;
+    count: number;
+    trend: number;
+  };
+  patientStats: {
+    total: number;
+    currentPeriod: number;
+    trend: number;
+  };
+  upcomingAppointments: DashboardAppointment[];
+  timeframe: string;
+}
+
+export interface ClinicAnalytics {
+  clinic: Partial<Clinic>;
+  appointmentStats: {
+    total: number;
+    allTime: number;
+    trend: number;
+    byStatus: {
+      pending: number;
+      confirmed: number;
+      completed: number;
+      cancelled: number;
+      rejected: number;
+      expired: number;
+    };
+    busiestDay: {
+      day: string;
+      count: number;
+    };
+    busiestTimeSlot: {
+      hour: string;
+      count: number;
+      formattedTime?: string;
+    };
+  };
+  revenue: {
+    total: number;
+    currentPeriod: number;
+    previousPeriod: number;
+    trend: number;
+    average: number;
+  };
+  ratings: {
+    average: number;
+    currentPeriod: number;
+    count: number;
+    trend: number;
+  };
+  patientDemographics: {
+    total: number;
+    currentPeriod: number;
+    trend: number;
+    gender: {
+      male: number;
+      female: number;
+      other: number;
+    };
+  };
+  upcomingAppointments: {
+    _id: string;
+    patientName: string;
+    patientImage: string | null;
+    date: string;
+    time: string;
+    status: string;
+    service: { name?: string } | null;
+    appointmentType: "In-Clinic" | "Home-Visit" | "Video-Call";
+  }[];
+  popularServices: { name: string; count: number }[];
+  monthlyTrends: { month: string; count: number; revenue: number }[];
+  dailyTrends: {
+    date: string;
+    day: number;
+    weekday: string;
+    count: number;
+    revenue: number;
+  }[];
+  timeframe: string;
 }
 
 export interface Review {

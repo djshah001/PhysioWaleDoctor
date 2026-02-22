@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, useWindowDimensions } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { MotiView } from "moti";
@@ -13,7 +13,7 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
   children,
   variant = "primary",
 }) => {
-  const { width, height } = useWindowDimensions();
+  // const { width: _width, height: _height } = useWindowDimensions();
 
   const getColors = (): [string, string, ...string[]] => {
     switch (variant) {

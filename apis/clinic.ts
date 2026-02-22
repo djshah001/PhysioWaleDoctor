@@ -1,5 +1,5 @@
 import api from "./api";
-import { Clinic } from "../types";
+import { Clinic, ClinicSummary } from "../types";
 
 export const clinicApi = {
   // Create a new clinic
@@ -11,9 +11,16 @@ export const clinicApi = {
     api.put<{ success: boolean; data: Clinic }>(`/clinics/${id}`, data),
 
   // Get clinics by doctor
+  // Get clinics by doctor
   getMyClinics: (doctorId: string) =>
     api.get<{ success: boolean; data: Clinic[] }>(
       `/clinics/doctor/${doctorId}`,
+    ),
+
+  // Get clinic summary for dashboard/list purposes
+  getClinicSummary: () =>
+    api.get<{ success: boolean; data: ClinicSummary[] }>(
+      "/doctors/clinic-summary",
     ),
 
   // Get clinic by ID

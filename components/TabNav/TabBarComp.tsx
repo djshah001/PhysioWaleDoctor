@@ -72,7 +72,7 @@ const TabBarComp = ({ state, descriptors, navigation }: BottomTabBarProps) => {
           });
         };
 
-        console.log("route.name", iconName);
+        // console.log("route.name", iconName);
 
         return (
           <TabButton

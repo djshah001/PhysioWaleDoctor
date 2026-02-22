@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ViewStyle, Platform } from "react-native";
+import { View, ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
 import { cn } from "~/lib/utils";
 
@@ -22,8 +22,6 @@ export const GlassCard: React.FC<GlassCardProps> = ({
 }) => {
   // On Android, BlurView can sometimes be heavy or not supported well depending on the version/device.
   // We can provide a fallback or just use it. expo-blur supports Android now.
-
-  const isAndroid = Platform.OS === "android";
 
   return (
     <BlurView

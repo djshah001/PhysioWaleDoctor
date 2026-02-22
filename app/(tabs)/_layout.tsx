@@ -9,9 +9,6 @@ const TabsLayout = () => {
       <Tabs
         tabBar={(props) => <TabBarComp {...props} />}
         screenOptions={tabScreenOptions}
-        // // This tells Expo Router to preserve the active tab when navigating back
-        // // It will remember which tab was active and return to it
-        // initialRouteName="home"
         backBehavior="history"
       >
         <Tabs.Screen
@@ -20,10 +17,28 @@ const TabsLayout = () => {
         />
 
         <Tabs.Screen
+          name="appointments"
+          options={{
+            title: "Appointments",
+            icon: "calendar-outline",
+            focusedIcon: "calendar",
+          }}
+        />
+
+        <Tabs.Screen
+          name="clinic"
+          options={{
+            title: "Clinic",
+            icon: "business-outline",
+            focusedIcon: "business",
+          }}
+        />
+
+        <Tabs.Screen
           name="profile"
           options={{
             title: "Profile",
-            icon: "person",
+            icon: "person-outline",
             focusedIcon: "person",
           }}
         />
