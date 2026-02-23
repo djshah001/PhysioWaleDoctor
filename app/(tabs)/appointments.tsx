@@ -16,18 +16,26 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { Button } from "~/components/ui/button";
 import { router } from "expo-router";
-import { useActionSheet } from "@expo/react-native-action-sheet";
+import { useAtom } from "jotai";
+import { SheetManager } from "react-native-actions-sheet";
 import colors from "tailwindcss/colors";
 import { GradientBackground } from "~/components/ui/premium/GradientBackground";
-import { GlassCard } from "~/components/ui/premium/GlassCard"; // only used for overlay
+import { GlassCard } from "~/components/ui/premium/GlassCard";
 import {
   appointmentApi,
   BookingStatus,
   GetDoctorAppointmentsParams,
 } from "~/apis/appointments";
-import { PopulatedAppointment, Clinic } from "~/types/models";
-import api from "~/apis/api";
+import { clinicApi } from "~/apis/clinic";
+import { clinicsAtom } from "~/store";
+import { PopulatedAppointment, Clinic, ClinicSummary } from "~/types/models";
+import {
+  ApptType,
+  FILTER_SHEET_ID,
+} from "~/components/Appointments/FilterSheet";
+import { FlashList } from "@shopify/flash-list";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -39,9 +47,6 @@ const STATUS_TABS: { key: BookingStatus; label: string }[] = [
   { key: "cancelled", label: "Cancelled" },
   { key: "rejected", label: "Rejected" },
 ];
-
-const APPT_TYPES = ["In-Clinic", "Home-Visit", "Video-Call"] as const;
-type ApptType = (typeof APPT_TYPES)[number];
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; dot: string }> =
   {
@@ -67,13 +72,7 @@ const LIMIT = 15;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-const SkeletonBox = ({
-  style,
-  className = "",
-}: {
-  style?: ViewStyle;
-  className?: string;
-}) => {
+const SkeletonBox = ({ style }: { style?: ViewStyle }) => {
   const opacity = useRef(new Animated.Value(0.35)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -95,15 +94,18 @@ const SkeletonBox = ({
   }, [opacity]);
   return (
     <Animated.View
-      style={[{ opacity }, style]}
-      className={`bg-white/50 rounded-2xl ${className}`}
+      style={[
+        // rgba + animated opacity — must stay as style
+        { opacity, backgroundColor: "rgba(255,255,255,0.5)", borderRadius: 20 },
+        style,
+      ]}
     />
   );
 };
 
 const AppointmentCardSkeleton = () => (
   <View className="px-4 mb-3">
-    <SkeletonBox style={{ height: 96 }} className="rounded-3xl" />
+    <SkeletonBox style={{ height: 96 }} />
   </View>
 );
 
@@ -115,6 +117,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     <View
       className={`flex-row items-center gap-1 px-2 py-0.5 rounded-full ${cfg.bg}`}
     >
+      {/* dot color is dynamic — keep as style */}
       <View
         style={{
           width: 5,
@@ -130,7 +133,56 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// ─── Appointment card ─────────────────────────────────────────────────────────
+// ─── Active filter chips ───────────────────────────────────────────────────────
+
+interface FilterChipsProps {
+  type?: ApptType;
+  clinicName?: string;
+  onClearType: () => void;
+  onClearClinic: () => void;
+}
+
+const FilterChips = ({
+  type,
+  clinicName,
+  onClearType,
+  onClearClinic,
+}: FilterChipsProps) => {
+  if (!type && !clinicName) return null;
+  return (
+    <View className="flex-row flex-wrap px-4 mb-2 gap-1.5">
+      {type && (
+        <TouchableOpacity
+          onPress={onClearType}
+          activeOpacity={0.7}
+          className="flex-row items-center gap-1 bg-violet-100 border border-violet-300 rounded-full px-2.5 py-1"
+        >
+          <Ionicons name={TYPE_ICON[type] as any} size={12} color="#4f46e5" />
+          <Text className="text-indigo-600 text-[11px] font-bold">{type}</Text>
+          <Ionicons name="close" size={12} color="#4f46e5" />
+        </TouchableOpacity>
+      )}
+      {clinicName && (
+        <TouchableOpacity
+          onPress={onClearClinic}
+          activeOpacity={0.7}
+          className="flex-row items-center gap-1 bg-violet-100 border border-violet-300 rounded-full px-2.5 py-1"
+        >
+          <Ionicons name="business-outline" size={12} color="#4f46e5" />
+          <Text
+            className="text-indigo-600 text-[11px] font-bold max-w-[120px]"
+            numberOfLines={1}
+          >
+            {clinicName}
+          </Text>
+          <Ionicons name="close" size={12} color="#4f46e5" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// ─── Appointment Card ─────────────────────────────────────────────────────────
 
 interface CardProps {
   item: PopulatedAppointment;
@@ -155,16 +207,15 @@ const AppointmentCard = React.memo(
       hour: "2-digit",
       minute: "2-digit",
     });
-
     const isPending = item.bookingStatus === "pending";
 
     return (
       <TouchableOpacity
         onPress={() => onPress(item._id)}
         activeOpacity={0.75}
-        style={{ marginHorizontal: 16, marginBottom: 12 }}
+        className="mx-4 mb-3"
       >
-        {/* Plain card — no BlurView: BlurView inside FlatList crashes on Android */}
+        {/* Plain card — no BlurView (BlurView inside FlatList crashes on Android) */}
         <View style={cardStyles.card}>
           {/* Main row */}
           <View className="flex-row p-3 gap-3">
@@ -173,7 +224,6 @@ const AppointmentCard = React.memo(
               <Image
                 source={{ uri: patient.profilePic }}
                 style={{ width: 48, height: 48, borderRadius: 24 }}
-                className="bg-gray-200"
                 recyclingKey={item._id}
               />
             ) : (
@@ -188,39 +238,36 @@ const AppointmentCard = React.memo(
             <View className="flex-1">
               <View className="flex-row justify-between items-start">
                 <Text
-                  className="font-bold text-gray-800 text-sm flex-1 mr-2"
+                  className="font-bold text-gray-800 text-[13px] flex-1 mr-2"
                   numberOfLines={1}
                 >
                   {patient?.name ?? "Unknown Patient"}
                 </Text>
                 <StatusBadge status={item.bookingStatus} />
               </View>
-
               <Text
                 className="text-gray-500 text-[11px] mt-0.5 mb-1"
                 numberOfLines={1}
               >
                 {service?.name ?? "—"}
               </Text>
-
-              {/* Meta row */}
-              <View
-                className="flex-row items-center flex-wrap"
-                style={{ gap: 6 }}
-              >
-                <View className="flex-row items-center" style={{ gap: 3 }}>
+              <View className="flex-row flex-wrap gap-2 mt-0.5">
+                <View className="flex-row items-center gap-0.5">
                   <Ionicons name="time-outline" size={11} color="#9ca3af" />
-                  <Text className="text-gray-500 text-[11px]">
+                  <Text className="text-gray-400 text-[11px]">
                     {dateStr} · {timeStr}
                   </Text>
                 </View>
-                <View className="flex-row items-center" style={{ gap: 3 }}>
+                <View className="flex-row items-center gap-0.5">
                   <Ionicons
-                    name={TYPE_ICON[item.appointmentType] ?? "calendar-outline"}
+                    name={
+                      (TYPE_ICON[item.appointmentType] ??
+                        "calendar-outline") as any
+                    }
                     size={11}
                     color="#9ca3af"
                   />
-                  <Text className="text-gray-500 text-[11px]">
+                  <Text className="text-gray-400 text-[11px]">
                     {item.appointmentType}
                   </Text>
                 </View>
@@ -230,19 +277,16 @@ const AppointmentCard = React.memo(
 
           {/* Clinic strip */}
           {clinic && (
-            <View
-              className="flex-row items-center px-3 pb-2"
-              style={{ gap: 4 }}
-            >
+            <View className="flex-row items-center px-3 pb-2 gap-1">
               <Ionicons name="location-outline" size={11} color="#6366f1" />
               <Text
-                className="text-indigo-600 text-[11px] font-medium flex-1"
+                className="text-indigo-500 text-[11px] font-semibold flex-1"
                 numberOfLines={1}
               >
                 {clinic.name}
               </Text>
               {item.billAmount > 0 && (
-                <Text className="text-gray-600 text-[11px] font-semibold">
+                <Text className="text-gray-700 text-[11px] font-semibold">
                   ₹{item.billAmount.toLocaleString()}
                 </Text>
               )}
@@ -251,35 +295,26 @@ const AppointmentCard = React.memo(
 
           {/* Quick actions for pending */}
           {isPending && (
-            <View className="flex-row border-t border-white/30">
-              <TouchableOpacity
+            <View style={cardStyles.actionRow} className="gap-0">
+              <Button
                 onPress={() => onReject(item._id)}
-                className="flex-1 flex-row items-center justify-center py-2.5 border-r border-white/30"
-                style={{ gap: 6 }}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={16}
-                  color="#dc2626"
-                />
-                <Text className="text-red-600 text-sm font-bold">Reject</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+                leftIcon="close-circle-outline"
+                leftIconSize={16}
+                leftIconColor="#dc2626"
+                title="Reject"
+                style={cardStyles.actionBtnLeft}
+                className="flex-1 bg-transparent rounded-none py-2.5 shadow-none"
+                textClassName="text-red-600 text-[13px] font-bold"
+              />
+              <Button
                 onPress={() => onAccept(item._id)}
-                className="flex-1 flex-row items-center justify-center py-2.5"
-                style={{ gap: 6 }}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={16}
-                  color="#059669"
-                />
-                <Text className="text-emerald-600 text-sm font-bold">
-                  Accept
-                </Text>
-              </TouchableOpacity>
+                leftIcon="checkmark-circle-outline"
+                leftIconSize={16}
+                leftIconColor="#059669"
+                title="Accept"
+                className="flex-1 bg-transparent rounded-none py-2.5 shadow-none"
+                textClassName="text-emerald-600 text-[13px] font-bold"
+              />
             </View>
           )}
         </View>
@@ -287,58 +322,6 @@ const AppointmentCard = React.memo(
     );
   },
 );
-
-// ─── Active filter chips ───────────────────────────────────────────────────────
-
-interface FilterChipsProps {
-  type?: ApptType;
-  clinicName?: string;
-  onClearType: () => void;
-  onClearClinic: () => void;
-}
-
-const FilterChips = ({
-  type,
-  clinicName,
-  onClearType,
-  onClearClinic,
-}: FilterChipsProps) => {
-  if (!type && !clinicName) return null;
-  return (
-    <View className="flex-row flex-wrap px-4 mb-2" style={{ gap: 6 }}>
-      {type && (
-        <TouchableOpacity
-          onPress={onClearType}
-          className="flex-row items-center bg-indigo-100 border border-indigo-200 rounded-full px-3 py-1"
-          style={{ gap: 4 }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name={TYPE_ICON[type]} size={12} color="#4f46e5" />
-          <Text className="text-indigo-700 text-[11px] font-bold">{type}</Text>
-          <Ionicons name="close" size={12} color="#4f46e5" />
-        </TouchableOpacity>
-      )}
-      {clinicName && (
-        <TouchableOpacity
-          onPress={onClearClinic}
-          className="flex-row items-center bg-indigo-100 border border-indigo-200 rounded-full px-3 py-1"
-          style={{ gap: 4 }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="business-outline" size={12} color="#4f46e5" />
-          <Text
-            className="text-indigo-700 text-[11px] font-bold"
-            numberOfLines={1}
-            style={{ maxWidth: 120 }}
-          >
-            {clinicName}
-          </Text>
-          <Ionicons name="close" size={12} color="#4f46e5" />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-};
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
@@ -350,7 +333,9 @@ type FilterState = {
 
 export default function AppointmentsScreen() {
   const insets = useSafeAreaInsets();
-  const { showActionSheetWithOptions } = useActionSheet();
+
+  // Jotai clinic atom
+  const [storedClinics, setStoredClinics] = useAtom(clinicsAtom);
 
   // List state
   const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
@@ -368,22 +353,23 @@ export default function AppointmentsScreen() {
   const [activeStatus, setActiveStatus] = useState<BookingStatus>("all");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterState>({});
-  const [clinics, setClinics] = useState<{ _id: string; name: string }[]>([]);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchQuery = useRef("");
+
   const activeFilters = [filters.appointmentType, filters.clinicId].filter(
     Boolean,
   ).length;
 
-  // ── Load clinics for filter ────────────────────────────────────────────────
+  // ── Load clinics (hydrate atom) ────────────────────────────────────────────
 
   useEffect(() => {
-    api
-      .get<{ success: boolean; data: Clinic[] }>("/clinics/my/clinics")
+    if (storedClinics.length > 0) return; // already loaded
+    clinicApi
+      .getClinicSummary()
       .then((r) => {
         const list = r.data?.data ?? [];
-        setClinics(list.map((c) => ({ _id: c._id, name: c.name })));
+        setStoredClinics(list as unknown as Clinic[]);
       })
       .catch(console.warn);
   }, []);
@@ -446,89 +432,25 @@ export default function AppointmentsScreen() {
     }
   };
 
-  // ── Filter action sheet ────────────────────────────────────────────────────
+  // ── Filter sheet ──────────────────────────────────────────────────────────
 
-  const openTypeFilter = () => {
-    const options = [...APPT_TYPES, "Clear", "Cancel"];
-    const cancelButtonIndex = options.length - 1;
-    const destructiveButtonIndex = options.length - 2; // "Clear"
-
-    showActionSheetWithOptions(
+  const openFilterSheet = async () => {
+    const result = await SheetManager.show<"appointment-filter-sheet">(
+      FILTER_SHEET_ID,
       {
-        title: "Filter by Type",
-        options,
-        cancelButtonIndex,
-        destructiveButtonIndex,
-      },
-      (idx) => {
-        if (idx === undefined || idx === cancelButtonIndex) return;
-        if (idx === destructiveButtonIndex) {
-          setFilters((f) => ({ ...f, appointmentType: undefined }));
-        } else {
-          setFilters((f) => ({ ...f, appointmentType: APPT_TYPES[idx] }));
-        }
+        payload: {
+          clinics: storedClinics as unknown as ClinicSummary[],
+          current: filters,
+        },
       },
     );
-  };
-
-  const openClinicFilter = () => {
-    if (clinics.length === 0) {
-      Alert.alert(
-        "No Clinics",
-        "You don't have any clinics associated with your account.",
-      );
-      return;
+    if (result) {
+      setFilters({
+        appointmentType: result.appointmentType,
+        clinicId: result.clinicId,
+        clinicName: result.clinicName,
+      });
     }
-    const clinicNames = clinics.map((c) => c.name);
-    const options = [...clinicNames, "All Clinics", "Cancel"];
-    const cancelButtonIndex = options.length - 1;
-    const destructiveButtonIndex = options.length - 2; // "All Clinics" → clear
-
-    showActionSheetWithOptions(
-      {
-        title: "Filter by Clinic",
-        options,
-        cancelButtonIndex,
-        destructiveButtonIndex,
-      },
-      (idx) => {
-        if (idx === undefined || idx === cancelButtonIndex) return;
-        if (idx === destructiveButtonIndex) {
-          setFilters((f) => ({
-            ...f,
-            clinicId: undefined,
-            clinicName: undefined,
-          }));
-        } else {
-          const clinic = clinics[idx];
-          setFilters((f) => ({
-            ...f,
-            clinicId: clinic._id,
-            clinicName: clinic.name,
-          }));
-        }
-      },
-    );
-  };
-
-  const openFilterSheet = () => {
-    const options = [
-      "Filter by Type",
-      "Filter by Clinic",
-      "Clear All Filters",
-      "Cancel",
-    ];
-    const cancelButtonIndex = 3;
-    const destructiveButtonIndex = 2;
-
-    showActionSheetWithOptions(
-      { title: "Filters", options, cancelButtonIndex, destructiveButtonIndex },
-      (idx) => {
-        if (idx === 0) openTypeFilter();
-        else if (idx === 1) openClinicFilter();
-        else if (idx === 2) setFilters({});
-      },
-    );
   };
 
   // ── Status quick-actions ───────────────────────────────────────────────────
@@ -565,9 +487,14 @@ export default function AppointmentsScreen() {
     [],
   );
 
-  const onAccept = (id: string) =>
-    handleStatusUpdate(id, "confirmed", "Accept");
-  const onReject = (id: string) => handleStatusUpdate(id, "rejected", "Reject");
+  const onAccept = useCallback(
+    (id: string) => handleStatusUpdate(id, "confirmed", "Accept"),
+    [handleStatusUpdate],
+  );
+  const onReject = useCallback(
+    (id: string) => handleStatusUpdate(id, "rejected", "Reject"),
+    [handleStatusUpdate],
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -591,13 +518,13 @@ export default function AppointmentsScreen() {
   return (
     <GradientBackground>
       <View className="flex-1" style={{ paddingTop: insets.top }}>
-        {/* Header */}
+        {/* ── Header ─────────────────────────────────────────────────────── */}
         <View className="px-4 pt-4 pb-3">
           <View className="flex-row justify-between items-center mb-1">
             <Text className="text-2xl font-extrabold text-gray-800">
               Appointments
             </Text>
-            <View className="flex-row items-center" style={{ gap: 8 }}>
+            <View className="flex-row items-center gap-2">
               {pagination.totalItems > 0 && (
                 <View className="bg-indigo-100 px-3 py-1 rounded-full">
                   <Text className="text-indigo-700 text-xs font-bold">
@@ -606,27 +533,24 @@ export default function AppointmentsScreen() {
                 </View>
               )}
               {/* Filter button */}
-              <TouchableOpacity
+              <Button
                 onPress={openFilterSheet}
-                className={`flex-row items-center rounded-xl px-3 py-2 border ${
-                  activeFilters > 0
-                    ? "bg-indigo-600 border-indigo-600"
-                    : "bg-white/70 border-white/40"
-                }`}
-                style={{ gap: 5 }}
-                activeOpacity={0.75}
-              >
-                <Ionicons
-                  name="options-outline"
-                  size={16}
-                  color={activeFilters > 0 ? "white" : "#6366f1"}
-                />
-                <Text
-                  className={`text-xs font-bold ${activeFilters > 0 ? "text-white" : "text-indigo-600"}`}
-                >
-                  {activeFilters > 0 ? `Filters (${activeFilters})` : "Filter"}
-                </Text>
-              </TouchableOpacity>
+                leftIcon="options-outline"
+                leftIconSize={16}
+                leftIconColor={"white"}
+                title={
+                  activeFilters > 0 ? `Filters (${activeFilters})` : "Filter"
+                }
+                className={
+                  "bg-indigo-600 border border-indigo-600 rounded-xl px-3 py-2"
+                }
+                // style={
+                //   activeFilters === 0
+                //     ? { backgroundColor: "rgba(255,255,255,0.75)" }
+                //     : undefined
+                // }
+                textClassName={`text-xs font-bold text-white `}
+              />
             </View>
           </View>
           <Text className="text-gray-500 text-sm">
@@ -634,10 +558,13 @@ export default function AppointmentsScreen() {
           </Text>
         </View>
 
-        {/* Search */}
+        {/* ── Search ─────────────────────────────────────────────────────── */}
         <View
-          className="mx-4 mb-3 flex-row items-center bg-white/70 border border-white/40 rounded-2xl px-3 py-2.5"
-          style={{ gap: 8 }}
+          className="mx-4 mb-3 flex-row items-center gap-2 rounded-2xl px-3 py-2.5 border"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.75)",
+            borderColor: "rgba(255,255,255,0.5)",
+          }}
         >
           <Ionicons name="search-outline" size={18} color="#9ca3af" />
           <TextInput
@@ -651,7 +578,7 @@ export default function AppointmentsScreen() {
           />
         </View>
 
-        {/* Active filter chips */}
+        {/* ── Active filter chips ─────────────────────────────────────────── */}
         <FilterChips
           type={filters.appointmentType}
           clinicName={filters.clinicName}
@@ -667,41 +594,36 @@ export default function AppointmentsScreen() {
           }
         />
 
-        {/* Status tabs */}
+        {/* ── Status tabs ─────────────────────────────────────────────────── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            gap: 8,
-            paddingBottom: 4,
-          }}
-          className="mb-3"
+          // 1. Add items-center to prevent children (buttons) from stretching vertically
+          contentContainerClassName="px-4 gap-2 items-center"
+          // 2. Add shrink-0 or flex-grow-0 so the ScrollView itself doesn't expand
+          className="mb-4 flex-grow-0 shrink-0"
         >
           {STATUS_TABS.map((tab) => {
             const isActive = activeStatus === tab.key;
             return (
-              <TouchableOpacity
+              <Button
                 key={tab.key}
                 onPress={() => setActiveStatus(tab.key)}
-                className={`px-4 py-1.5 rounded-full border ${
+                title={tab.label}
+                className={`rounded-full px-4 py-1 border shadow-none ${
                   isActive
                     ? "bg-indigo-600 border-indigo-600"
-                    : "bg-white/60 border-white/40"
+                    : "bg-white/70 border-white/20"
                 }`}
-                activeOpacity={0.7}
-              >
-                <Text
-                  className={`text-xs font-bold ${isActive ? "text-white" : "text-gray-600"}`}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
+                textClassName={`text-xs font-bold ${
+                  isActive ? "text-white" : "text-gray-500"
+                }`}
+              />
             );
           })}
         </ScrollView>
 
-        {/* List */}
+        {/* ── List ────────────────────────────────────────────────────────── */}
         {loading ? (
           <ScrollView
             scrollEnabled={false}
@@ -712,13 +634,12 @@ export default function AppointmentsScreen() {
             ))}
           </ScrollView>
         ) : (
-          <FlatList
+          <FlashList
             data={appointments}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
             contentContainerStyle={{
               paddingBottom: insets.bottom + 120,
-              flexGrow: 1,
             }}
             refreshControl={
               <RefreshControl
@@ -730,11 +651,8 @@ export default function AppointmentsScreen() {
             }
             onEndReached={onEndReached}
             onEndReachedThreshold={0.3}
-            removeClippedSubviews
-            maxToRenderPerBatch={8}
-            windowSize={10}
             ListEmptyComponent={
-              <View className="flex-1 items-center justify-center pt-20 px-8">
+              <View className=" items-center justify-center pt-20 px-8">
                 <View className="bg-indigo-50 p-6 rounded-full mb-4">
                   <Ionicons name="calendar-outline" size={48} color="#6366f1" />
                 </View>
@@ -758,9 +676,12 @@ export default function AppointmentsScreen() {
           />
         )}
 
-        {/* Updating overlay */}
+        {/* ── Updating overlay ────────────────────────────────────────────── */}
         {updatingId && (
-          <View className="absolute inset-0 bg-black/20 items-center justify-center">
+          <View
+            className="absolute inset-0 items-center justify-center"
+            style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
+          >
             <GlassCard
               contentContainerClassName="px-8 py-5 items-center"
               style={{ gap: 12 }}
@@ -777,8 +698,10 @@ export default function AppointmentsScreen() {
   );
 }
 
-// ─── Card StyleSheet (plain card, no BlurView) ────────────────────────────────
+// ─── Minimal StyleSheet (only for values NativeWind can't express) ─────────────
+
 const cardStyles = StyleSheet.create({
+  // rgba background + custom shadow — NativeWind can't do dynamic rgba or shadow config
   card: {
     backgroundColor: "rgba(255,255,255,0.88)",
     borderRadius: 20,
@@ -791,72 +714,14 @@ const cardStyles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  avatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#e0e7ff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLetter: {
-    color: "#4f46e5",
-    fontWeight: "800",
-    fontSize: 18,
-  },
-  patientName: {
-    fontWeight: "700",
-    color: "#1f2937",
-    fontSize: 13,
-    flex: 1,
-    marginRight: 8,
-  },
-  serviceName: {
-    color: "#6b7280",
-    fontSize: 11,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  metaText: {
-    color: "#9ca3af",
-    fontSize: 11,
-  },
-  clinicName: {
-    color: "#4f46e5",
-    fontSize: 11,
-    fontWeight: "600",
-    flex: 1,
-  },
-  billAmount: {
-    color: "#374151",
-    fontSize: 11,
-    fontWeight: "600",
-  },
+  // rgba border — NativeWind can't express rgba border colors
   actionRow: {
     flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.07)",
   },
-  actionBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    gap: 6,
-  },
   actionBtnLeft: {
     borderRightWidth: 1,
     borderRightColor: "rgba(0,0,0,0.07)",
-  },
-  rejectText: {
-    color: "#dc2626",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  acceptText: {
-    color: "#059669",
-    fontWeight: "700",
-    fontSize: 13,
   },
 });
