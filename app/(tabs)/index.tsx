@@ -9,6 +9,7 @@ import {
   Animated,
   ViewStyle,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAtom } from "jotai";
 import { userDataAtom } from "~/store/userAtoms";
@@ -28,12 +29,21 @@ import colors from "tailwindcss/colors";
 
 type Timeframe = "week" | "month" | "year";
 
+// Section IDs for the FlashList data array
+type SectionId =
+  | "header"
+  | "error"
+  | "timeframe"
+  | "stats"
+  | "quick-actions"
+  | "upcoming";
+
+interface Section {
+  id: SectionId;
+}
+
 // ─── Skeleton (NativeWind + RN Animated) ─────────────────────────────────────
 
-/**
- * A pulsing skeleton block. Uses React Native's Animated API so it works
- * without Moti and across all platforms. Style through `className` and `style`.
- */
 const SkeletonBox = ({
   className = "",
   style,
@@ -70,11 +80,10 @@ const SkeletonBox = ({
   );
 };
 
-/** Full-screen skeleton that mirrors the real layout */
+/** Full-page skeleton rendered as plain Views — no nested ScrollView */
 const DashboardSkeleton = ({ insetTop }: { insetTop: number }) => (
-  <ScrollView
-    scrollEnabled={false}
-    contentContainerStyle={{ paddingTop: insetTop + 8, paddingBottom: 40 }}
+  <View
+    style={{ paddingTop: insetTop + 8, paddingBottom: 40 }}
     className="flex-1"
   >
     {/* Header */}
@@ -87,11 +96,6 @@ const DashboardSkeleton = ({ insetTop }: { insetTop: number }) => (
         </View>
       </View>
       <SkeletonBox className="w-10 h-10 rounded-full" />
-    </View>
-
-    {/* Date widget */}
-    <View className="px-6 mb-5">
-      <SkeletonBox className="h-12 rounded-2xl" />
     </View>
 
     {/* Timeframe pills */}
@@ -107,14 +111,15 @@ const DashboardSkeleton = ({ insetTop }: { insetTop: number }) => (
     </View>
 
     {/* Today 2×2 grid */}
-    <View className="px-6 mb-6 flex-row flex-wrap gap-3">
-      {[0, 1, 2, 3].map((i) => (
-        <SkeletonBox
-          key={i}
-          style={{ width: "47.5%" as any, height: 90 }}
-          className="rounded-2xl"
-        />
-      ))}
+    <View className="px-6 mb-6">
+      <View className="flex-row gap-3 mb-3">
+        <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
+        <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
+      </View>
+      <View className="flex-row gap-3">
+        <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
+        <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
+      </View>
     </View>
 
     {/* Period strip label */}
@@ -122,7 +127,7 @@ const DashboardSkeleton = ({ insetTop }: { insetTop: number }) => (
       <SkeletonBox style={{ width: 130, height: 20 }} />
     </View>
 
-    {/* Period strip */}
+    {/* Period strip — horizontal row of cards */}
     <View className="flex-row gap-3 pl-6 mb-6">
       {[0, 1, 2].map((i) => (
         <SkeletonBox
@@ -138,7 +143,7 @@ const DashboardSkeleton = ({ insetTop }: { insetTop: number }) => (
       <SkeletonBox style={{ width: 110, height: 20 }} />
     </View>
 
-    {/* Quick actions */}
+    {/* Quick action circles */}
     <View className="flex-row justify-between px-6 mb-6">
       {[0, 1, 2, 3].map((i) => (
         <View key={i} className="items-center gap-2">
@@ -162,7 +167,7 @@ const DashboardSkeleton = ({ insetTop }: { insetTop: number }) => (
         <SkeletonBox style={{ height: 72 }} className="rounded-2xl" />
       </View>
     ))}
-  </ScrollView>
+  </View>
 );
 
 // ─── Trend pill ───────────────────────────────────────────────────────────────
@@ -179,13 +184,14 @@ const TrendPill = ({
   const label = `${value > 0 ? "+" : ""}${value}%`;
   return (
     <View
-      className={`flex-row items-center gap-0.5 px-1.5 py-0.5 rounded-full self-start mt-1
-        ${isGood ? "bg-emerald-100" : "bg-red-100"}`}
+      className={`flex-row items-center gap-0.5 px-1.5 py-0.5 rounded-full self-start mt-1 ${
+        isGood ? "bg-emerald-100" : "bg-red-100"
+      }`}
     >
       <Ionicons
         name={value > 0 ? "trending-up" : "trending-down"}
         size={9}
-        color={isGood ? "#059669" : "#dc2626"}
+        color={isGood ? colors.emerald[600] : colors.red[600]}
       />
       <Text
         className={`text-[9px] font-bold ${
@@ -206,29 +212,33 @@ const TodayGrid = ({ data }: { data: DashboardData["todayStats"] }) => {
       label: "Today's Patients",
       value: String(data.total),
       icon: "people" as const,
-      color: "#4f46e5",
-      bgColor: "#eef2ff",
+      iconCls: "text-indigo-600",
+      bgCls: "bg-indigo-50",
+      iconColor: colors.indigo[600],
     },
     {
       label: "Completed",
       value: String(data.completed),
       icon: "checkmark-circle" as const,
-      color: "#059669",
-      bgColor: "#ecfdf5",
+      iconCls: "text-emerald-600",
+      bgCls: "bg-emerald-50",
+      iconColor: colors.emerald[600],
     },
     {
       label: "Pending / Conf.",
       value: String(data.pending),
       icon: "time" as const,
-      color: "#d97706",
-      bgColor: "#fffbeb",
+      iconCls: "text-amber-600",
+      bgCls: "bg-amber-50",
+      iconColor: colors.amber[600],
     },
     {
       label: "Today's Revenue",
       value: `₹${data.revenue.toLocaleString()}`,
       icon: "wallet" as const,
-      color: "#7c3aed",
-      bgColor: "#f5f3ff",
+      iconCls: "text-violet-600",
+      bgCls: "bg-violet-50",
+      iconColor: colors.violet[600],
     },
   ];
 
@@ -237,7 +247,6 @@ const TodayGrid = ({ data }: { data: DashboardData["todayStats"] }) => {
       <Text className="text-base font-bold text-gray-800 mb-3">
         Today at a Glance
       </Text>
-      {/* Use fixed row-pair layout instead of flex-wrap + percentage widths */}
       {[cells.slice(0, 2), cells.slice(2, 4)].map((row, rowIdx) => (
         <View key={rowIdx} className="flex-row gap-3 mb-3">
           {row.map((c, i) => (
@@ -252,11 +261,8 @@ const TodayGrid = ({ data }: { data: DashboardData["todayStats"] }) => {
                 className="flex-1 rounded-2xl"
                 contentContainerClassName="p-4 rounded-2xl"
               >
-                <View
-                  style={{ backgroundColor: c.bgColor }}
-                  className="self-start p-2 rounded-xl mb-2"
-                >
-                  <Ionicons name={c.icon} size={16} color={c.color} />
+                <View className={`self-start p-2 rounded-xl mb-2 ${c.bgCls}`}>
+                  <Ionicons name={c.icon} size={16} color={c.iconColor} />
                 </View>
                 <Text
                   className="text-2xl font-extrabold text-gray-800"
@@ -288,8 +294,6 @@ const PeriodStats = ({
   data: DashboardData;
   timeframe: Timeframe;
 }) => {
-  console.log(JSON.stringify(data, null, 2));
-
   const { width } = useWindowDimensions();
   const { appointmentStats, revenue, ratings, patientStats } = data;
   const tfLabel = timeframe.charAt(0).toUpperCase() + timeframe.slice(1);
@@ -300,55 +304,56 @@ const PeriodStats = ({
       label: `${tfLabel} Appointments`,
       value: String(appointmentStats.total),
       trend: appointmentStats.trend,
-      color: "#4f46e5",
-      bgColor: "#eef2ff",
+      iconColor: colors.indigo[500],
+      bgCls: "bg-indigo-50",
     },
     {
       icon: "wallet" as const,
       label: "Period Revenue",
       value: `₹${revenue.thisPeriod.toLocaleString()}`,
       trend: revenue.growth,
-      color: "#7c3aed",
-      bgColor: "#f5f3ff",
+      iconColor: colors.purple[600],
+      bgCls: "bg-purple-100",
     },
     {
       icon: "star" as const,
       label: "Avg Rating",
       value: ratings.average > 0 ? `${ratings.average} ★` : "—",
       trend: ratings.trend,
-      color: "#d97706",
-      bgColor: "#fffbeb",
+      iconColor: colors.amber[600],
+      bgCls: "bg-amber-100",
     },
     {
       icon: "people" as const,
       label: `${tfLabel} Patients`,
       value: String(patientStats.currentPeriod),
       trend: patientStats.trend,
-      color: "#059669",
-      bgColor: "#ecfdf5",
+      iconColor: colors.emerald[600],
+      bgCls: "bg-emerald-100",
     },
     {
       icon: "cash" as const,
       label: "All-Time Revenue",
       value: `₹${revenue.allTime.toLocaleString()}`,
       trend: 0,
-      color: "#0891b2",
-      bgColor: "#ecfeff",
+      iconColor: colors.cyan[600],
+      bgCls: "bg-cyan-100",
     },
   ];
 
-  const cardWidth = Math.min(width * 0.44, 180);
+  const cardWidth = Math.min(width * 0.35, 180);
 
   return (
     <View className="mb-6">
       <Text className="text-base font-bold text-gray-800 mb-3 px-6">
         Period Overview
       </Text>
+      {/* Horizontal ScrollView is intentional here — FlashList doesn't support horizontal sub-lists well */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}
-        decelerationRate="fast"
+        decelerationRate="normal"
       >
         {cards.map((c, i) => (
           <MotiView
@@ -362,16 +367,13 @@ const PeriodStats = ({
               className="rounded-3xl"
               contentContainerClassName="p-4 rounded-3xl"
             >
-              <View
-                style={{ backgroundColor: c.bgColor }}
-                className="self-start p-2 rounded-xl mb-3"
-              >
-                <Ionicons name={c.icon} size={16} color={c.color} />
+              <View className={`self-start p-2 rounded-xl mb-3 ${c.bgCls}`}>
+                <Ionicons name={c.icon} size={16} color={c.iconColor} />
               </View>
               <Text
                 className="text-xl font-extrabold text-gray-800"
                 numberOfLines={1}
-                adjustsFontSizeToFit
+                // adjustsFontSizeToFit
               >
                 {c.value}
               </Text>
@@ -437,7 +439,7 @@ const TimeframePicker = ({
   );
 };
 
-// ─── Inline mini-skeleton (during timeframe refresh, keeps layout stable) ────
+// ─── Inline mini-skeleton (timeframe refresh) ─────────────────────────────────
 
 const MiniStatsSkeleton = () => (
   <View className="px-6 mb-6">
@@ -446,9 +448,25 @@ const MiniStatsSkeleton = () => (
       <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
       <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
     </View>
+    <View className="flex-row gap-3 mb-5">
+      <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
+      <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
+    </View>
+    {/* Period strip skeleton */}
+    <SkeletonBox style={{ width: 130, height: 20 }} className="mb-3" />
     <View className="flex-row gap-3">
-      <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
-      <SkeletonBox className="flex-1 h-[90px] rounded-2xl" />
+      <SkeletonBox
+        style={{ width: 150, height: 110 }}
+        className="rounded-3xl"
+      />
+      <SkeletonBox
+        style={{ width: 150, height: 110 }}
+        className="rounded-3xl"
+      />
+      <SkeletonBox
+        style={{ width: 150, height: 110 }}
+        className="rounded-3xl"
+      />
     </View>
   </View>
 );
@@ -464,7 +482,7 @@ export default function HomeScreen() {
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [fetching, setFetching] = useState(false); // timeframe re-fetch
+  const [fetching, setFetching] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("month");
   const [error, setError] = useState<string | null>(null);
 
@@ -493,12 +511,10 @@ export default function HomeScreen() {
     [userData, timeframe],
   );
 
-  // Initial load
   useEffect(() => {
     fetchData("initial");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Timeframe change
   useEffect(() => {
     if (!loading) fetchData("timeframe");
   }, [timeframe]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -536,35 +552,39 @@ export default function HomeScreen() {
     );
   }
 
-  // ── Main render ───────────────────────────────────────────────────────────
+  // ── FlashList sections ───────────────────────────────────────────────────
+  // Each section is a lightweight descriptor; renderItem handles the actual UI.
+  // This gives us FlashList's virtualisation for the full screen scroll.
 
-  return (
-    <GradientBackground>
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.indigo[600]}
-            colors={[colors.indigo[600]]}
+  const sections: Section[] = [
+    { id: "header" },
+    ...(error ? [{ id: "error" as SectionId }] : []),
+    { id: "timeframe" },
+    { id: "stats" },
+    { id: "quick-actions" },
+    { id: "upcoming" },
+  ];
+
+  const renderSection = ({ item }: { item: Section }) => {
+    switch (item.id) {
+      case "header":
+        return (
+          <PremiumHeader
+            name={userData.name}
+            profilePic={userData.profilePic}
+            notificationCount={0}
           />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Header ── */}
-        <PremiumHeader
-          name={userData.name}
-          profilePic={userData.profilePic}
-          notificationCount={0}
-        />
+        );
 
-        {/* ── Error banner (below header, above content) ── */}
-        {error && (
+      case "error":
+        return (
           <View className="mx-6 mb-4 rounded-2xl overflow-hidden">
             <GlassCard contentContainerClassName="flex-row items-center gap-3 p-3">
-              <Ionicons name="alert-circle-outline" size={18} color="#dc2626" />
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color={colors.red[600]}
+              />
               <Text className="text-red-700 text-sm font-medium flex-1">
                 {error}
               </Text>
@@ -576,34 +596,65 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </GlassCard>
           </View>
-        )}
+        );
 
-        {/* ── Timeframe selector ── */}
-        <TimeframePicker
-          value={timeframe}
-          onChange={setTimeframe}
-          disabled={fetching}
-        />
+      case "timeframe":
+        return (
+          <TimeframePicker
+            value={timeframe}
+            onChange={setTimeframe}
+            disabled={fetching}
+          />
+        );
 
-        {/* ── Today / period data ── */}
-        {fetching || !dashboardData ? (
+      case "stats":
+        return fetching || !dashboardData ? (
           <MiniStatsSkeleton />
         ) : (
           <>
             <TodayGrid data={dashboardData.todayStats} />
             <PeriodStats data={dashboardData} timeframe={timeframe} />
           </>
-        )}
+        );
 
-        {/* ── Quick Actions (always visible) ── */}
-        <QuickActionGrid />
+      case "quick-actions":
+        return <QuickActionGrid />;
 
-        {/* ── Upcoming schedule (always visible, gracefully empty) ── */}
-        <UpcomingScheduleCard
-          appointments={dashboardData?.upcomingAppointments ?? []}
-          onViewAll={() => router.push("/(tabs)/appointments" as any)}
-        />
-      </ScrollView>
+      case "upcoming":
+        return (
+          <UpcomingScheduleCard
+            appointments={dashboardData?.upcomingAppointments ?? []}
+            onViewAll={() => router.push("/(tabs)/appointments" as any)}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ── Main render ───────────────────────────────────────────────────────────
+
+  return (
+    <GradientBackground>
+      <FlashList
+        data={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderSection}
+        // estimatedItemSize={200}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 120,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.indigo[600]}
+            colors={[colors.indigo[600]]}
+          />
+        }
+      />
     </GradientBackground>
   );
 }

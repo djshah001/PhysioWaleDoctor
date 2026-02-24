@@ -67,19 +67,54 @@ export interface Admin extends BaseUser {
   superAdmin: boolean;
 }
 
+export const SERVICE_CATEGORIES = [
+  "Consultation",
+  "Manual Therapy",
+  "Electrotherapy",
+  "Rehabilitation",
+  "Home Visit",
+  "Pediatric",
+  "Neurological",
+  "Sports Recovery",
+  "Other",
+] as const;
+
+export type ServiceCategory = (typeof SERVICE_CATEGORIES)[number];
+
 export interface Service {
   _id: string;
-  clinic: string; // Clinic ID (renamed from clinicId)
-  doctor?: string; // Optional doctor ID for doctor-specific pricing
+  /** Populated or ID string */
+  clinic: { _id: string; name: string; city?: string } | string;
+  doctor?: string;
   name: string;
   description?: string;
-  duration: number; // Minutes
+  duration: number; // minutes
   price: number;
-  category: string;
-  isHomeVisit?: boolean;
+  category: ServiceCategory;
+  isHomeVisit: boolean;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ServiceFormData {
+  name: string;
+  description: string;
+  category: ServiceCategory;
+  duration: number;
+  price: number;
+  clinic: string; // Clinic ID
+  isHomeVisit: boolean;
+  isActive: boolean;
+}
+
+export interface ServiceListResponse {
+  data: Service[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+  };
 }
 
 export interface UnavailableSlot {

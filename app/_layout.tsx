@@ -31,6 +31,8 @@ import { useAuth } from "../hooks/useAuth";
 import Toast from "../components/ui/Toast";
 // Side-effect import: triggers registerSheet() so SheetManager.show() works globally
 import "../components/Appointments/FilterSheet";
+import "../components/Services/ServiceFormSheet";
+import "../components/Services/ServiceFilterSheet";
 
 // import { SafeAreaProvider } from "react-native-safe-area-context";
 
