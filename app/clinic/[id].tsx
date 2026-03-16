@@ -693,7 +693,12 @@ const ClinicDetailsScreen = () => {
           >
             {clinicName}
           </Text>
-          <View className="w-10" />
+          <TouchableOpacity
+            onPress={() => router.push(`/clinics/manage?editId=${id}`)}
+            className="w-10 h-10 rounded-full bg-indigo-100 items-center justify-center"
+          >
+            <Feather name="edit-2" size={18} color={colors.indigo[600]} />
+          </TouchableOpacity>
         </View>
       </Animated.View>
 
@@ -709,6 +714,24 @@ const ClinicDetailsScreen = () => {
           className="w-10 h-10 rounded-full bg-black/30 items-center justify-center border border-white/20"
         >
           <Ionicons name="arrow-back" size={22} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            top: insets.top + 10,
+            right: 20,
+            zIndex: 200,
+          },
+          overlayOpacity,
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => router.push(`/clinics/manage?editId=${id}`)}
+          className="w-10 h-10 rounded-full bg-black/30 items-center justify-center border border-white/20"
+        >
+          <Feather name="edit-2" size={18} color="white" />
         </TouchableOpacity>
       </Animated.View>
 

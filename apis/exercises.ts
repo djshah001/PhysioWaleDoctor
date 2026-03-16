@@ -10,6 +10,8 @@ export interface Exercise {
   description: string;
   videoUrl?: string;
   bodyPart?: string;
+  thumbnailUrl?: string;
+  tags?: any[];
 }
 
 export const exerciseApi = {

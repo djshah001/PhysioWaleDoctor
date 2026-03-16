@@ -25,7 +25,16 @@ export const clinicApi = {
 
   // Get clinic by ID
   getClinicById: (id: string) =>
-    api.get<{ success: boolean; data: Clinic }>(`/clinics/${id}`),
+    api.get<{
+      success: boolean;
+      data: {
+        clinic: Clinic;
+        services: any[];
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+      };
+    }>(`/clinics/${id}`),
 
   // Get nearby clinics (public)
   getNearby: (lat: number, lng: number, page?: number, limit?: number) =>

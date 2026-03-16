@@ -3,6 +3,10 @@ import { Stack, router } from "expo-router";
 import { useAtom } from "jotai";
 import { isAppFirstOpenedAtom } from "../store/authAtoms";
 import { SheetProvider } from "react-native-actions-sheet";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
@@ -82,29 +86,31 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView>
-      {/* <SafeAreaProvider> */}
-      <SheetProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={isAppFirstOpened}>
-            <Stack.Screen name="onboarding" />
-          </Stack.Protected>
-          <Stack.Protected guard={!isAppFirstOpened}>
-            {/* Authenticated & Profile Completed -> Main App */}
-            <Stack.Protected guard={isLoggedIn}>
-              <Stack.Screen name="(tabs)" />
-              {/* <Stack.Screen name="(profile)" /> */}
-            </Stack.Protected>
+    <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView>
+        <ActionSheetProvider>
+          <SheetProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Protected guard={isAppFirstOpened}>
+                <Stack.Screen name="onboarding" />
+              </Stack.Protected>
+              <Stack.Protected guard={!isAppFirstOpened}>
+                {/* Authenticated & Profile Completed -> Main App */}
+                <Stack.Protected guard={isLoggedIn}>
+                  <Stack.Screen name="(tabs)" />
+                  {/* <Stack.Screen name="(profile)" /> */}
+                </Stack.Protected>
 
-            {/* Not Logged In OR Profile Incomplete -> Auth Flow */}
-            <Stack.Protected guard={!isLoggedIn}>
-              <Stack.Screen name="(auth)" />
-            </Stack.Protected>
-          </Stack.Protected>
-        </Stack>
-        <Toast />
-      </SheetProvider>
-      {/* </SafeAreaProvider> */}
-    </GestureHandlerRootView>
+                {/* Not Logged In OR Profile Incomplete -> Auth Flow */}
+                <Stack.Protected guard={!isLoggedIn}>
+                  <Stack.Screen name="(auth)" />
+                </Stack.Protected>
+              </Stack.Protected>
+            </Stack>
+            <Toast />
+          </SheetProvider>
+        </ActionSheetProvider>
+      </GestureHandlerRootView>
+    </QueryClientProvider>
   );
 }

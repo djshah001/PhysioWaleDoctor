@@ -1,12 +1,12 @@
 import React from "react";
 import { View, ViewStyle } from "react-native";
-import { BlurView } from "expo-blur";
+import { BlurView, BlurViewProps } from "expo-blur";
 import { cn } from "~/lib/utils";
 
 type GlassCardProps = {
   children: React.ReactNode;
   intensity?: number;
-  tint?: "light" | "dark" | "default";
+  tint?: BlurViewProps["tint"];
   className?: string;
   style?: ViewStyle;
   contentContainerClassName?: string;
@@ -14,10 +14,16 @@ type GlassCardProps = {
 
 export const GlassCard: React.FC<GlassCardProps> = ({
   children,
-  intensity = 20,
+  intensity = 50,
   tint = "light",
   className,
-  style,
+  style = {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 8,
+  },
   contentContainerClassName,
 }) => {
   // On Android, BlurView can sometimes be heavy or not supported well depending on the version/device.
@@ -30,7 +36,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         className,
       )}
       intensity={intensity} // Disable actual blur on android if we use opacity hack, or keep it if performance is good
-      tint={"prominent"}
+      tint={tint}
       experimentalBlurMethod="dimezisBlurView"
       style={style}
     >

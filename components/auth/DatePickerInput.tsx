@@ -13,6 +13,7 @@ interface DatePickerInputProps {
   onChange: (date: Date) => void;
   error?: string;
   label?: string;
+  theme?: "dark" | "light";
 }
 
 const DatePickerInput: React.FC<DatePickerInputProps> = ({
@@ -20,8 +21,10 @@ const DatePickerInput: React.FC<DatePickerInputProps> = ({
   onChange,
   error,
   label = "Date of Birth",
+  theme = "dark",
 }) => {
   const [show, setShow] = useState(false);
+  const isLight = theme === "light";
 
   const handleChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
@@ -50,8 +53,16 @@ const DatePickerInput: React.FC<DatePickerInputProps> = ({
   const minDate = new Date(1950, 0, 1);
 
   return (
-    <View className="gap-2">
-      <Text className="text-white ml-1 font-pmedium">{label}</Text>
+    <View className={isLight ? "" : "gap-2"}>
+      <Text
+        className={
+          isLight
+            ? "text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1"
+            : "text-white ml-1 font-pmedium"
+        }
+      >
+        {label}
+      </Text>
 
       <Button
         onPress={() => {
@@ -60,24 +71,36 @@ const DatePickerInput: React.FC<DatePickerInputProps> = ({
           }
           setShow(true);
         }}
-        className="overflow-hidden rounded-2xl border-0 p-0 bg-white/5"
+        className={`overflow-hidden rounded-2xl border-0 p-0 ${
+          isLight ? "bg-gray-50" : "bg-white/5"
+        }`}
       >
         <BlurView
-          intensity={20}
-          tint="dark"
+          intensity={isLight ? 0 : 20}
+          tint={isLight ? "light" : "dark"}
           experimentalBlurMethod="dimezisBlurView"
-          className={`flex-1 flex-row items-center justify-between p-4 border rounded-2xl overflow-hidden ${
-            error ? "border-red-500" : "border-white/10"
-          } bg-white/5`}
+          className={`flex-1 flex-row items-center justify-between border rounded-2xl overflow-hidden ${
+            error
+              ? "border-red-500"
+              : isLight
+                ? "border-gray-100"
+                : "border-white/10"
+          } ${isLight ? "px-4 h-14 bg-gray-50" : "p-4 bg-white/5"}`}
         >
           <View className="flex-1 flex-row items-center gap-3">
             <MaterialCommunityIcons
               name="calendar"
               size={20}
-              color={value ? "#fb7185" : "#94a3b8"}
+              color={value ? (isLight ? "#4f46e5" : "#fb7185") : "#94a3b8"}
             />
             <Text
-              className={`font-pregular ${value ? "text-white" : "text-slate-400"}`}
+              className={`font-pregular ${
+                value
+                  ? isLight
+                    ? "text-gray-800 font-medium text-base pt-1"
+                    : "text-white"
+                  : "text-slate-400 pt-1"
+              }`}
             >
               {formatDate(value) || "Select Date"}
             </Text>
@@ -85,7 +108,7 @@ const DatePickerInput: React.FC<DatePickerInputProps> = ({
           <MaterialCommunityIcons
             name="chevron-down"
             size={24}
-            color="#94a3b8"
+            color={isLight ? "#9ca3af" : "#94a3b8"}
           />
         </BlurView>
       </Button>
@@ -109,9 +132,9 @@ const DatePickerInput: React.FC<DatePickerInputProps> = ({
           onChange={handleChange}
           maximumDate={maxDate}
           minimumDate={minDate}
-          themeVariant="dark"
-          accentColor="#fb7185"
-          textColor="#ffffff"
+          themeVariant={isLight ? "light" : "dark"}
+          accentColor={isLight ? "#4f46e5" : "#fb7185"}
+          textColor={isLight ? "#111827" : "#ffffff"}
         />
       )}
     </View>

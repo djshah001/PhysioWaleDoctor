@@ -59,6 +59,8 @@ export interface Doctor extends BaseUser {
   }[];
   averageRating: number;
   totalRatings: number;
+  DOB?: Date | string;
+  gender?: string;
 }
 
 export interface Admin extends BaseUser {

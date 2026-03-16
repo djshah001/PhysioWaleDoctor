@@ -41,4 +41,12 @@ export interface RegisterPayload {
   phoneNumber: string;
   password: string;
   confirmPassword?: string;
+  profilePic?: string;
+  DOB?: Date;
+  gender?: string;
+  specialization?: string;
+  licenseNumber?: string;
+  experienceYears?: number;
+  consultationFee?: number;
+  context: "doctor";
 }

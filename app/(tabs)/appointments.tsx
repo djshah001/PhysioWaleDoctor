@@ -6,10 +6,7 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  RefreshControl,
   ActivityIndicator,
-  Animated,
-  ViewStyle,
   Alert,
   StyleSheet,
 } from "react-native";
@@ -36,6 +33,10 @@ import {
   FILTER_SHEET_ID,
 } from "~/components/Appointments/FilterSheet";
 import { FlashList } from "@shopify/flash-list";
+import {
+  useInfiniteDoctorAppointments,
+  useUpdateAppointmentStatus,
+} from "~/apis/hooks/useAppointments";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,40 +73,40 @@ const LIMIT = 15;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-const SkeletonBox = ({ style }: { style?: ViewStyle }) => {
-  const opacity = useRef(new Animated.Value(0.35)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.85,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.35,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [opacity]);
-  return (
-    <Animated.View
-      style={[
-        // rgba + animated opacity — must stay as style
-        { opacity, backgroundColor: "rgba(255,255,255,0.5)", borderRadius: 20 },
-        style,
-      ]}
-    />
-  );
-};
-
 const AppointmentCardSkeleton = () => (
   <View className="px-4 mb-3">
-    <SkeletonBox style={{ height: 96 }} />
+    <View
+      className="bg-white/60 rounded-[20px] p-4 border border-white/60 flex-col animate-pulse"
+      style={{
+        shadowColor: "#6366f1",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
+      }}
+    >
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center gap-3 flex-1">
+          <View className="h-10 w-10 rounded-full bg-slate-300/50" />
+          <View className="flex-1 gap-2">
+            <View className="h-4 w-32 bg-slate-300/50 rounded" />
+            <View className="h-3 w-20 bg-slate-300/50 rounded" />
+          </View>
+        </View>
+        <View className="h-6 w-16 bg-slate-300/50 rounded-full" />
+      </View>
+
+      <View className="flex-row items-center gap-4">
+        <View className="flex-row items-center gap-2">
+          <View className="h-4 w-4 bg-slate-300/50 rounded" />
+          <View className="h-3 w-16 bg-slate-300/50 rounded" />
+        </View>
+        <View className="flex-row items-center gap-2">
+          <View className="h-4 w-4 bg-slate-300/50 rounded" />
+          <View className="h-3 w-16 bg-slate-300/50 rounded" />
+        </View>
+      </View>
+    </View>
   </View>
 );
 
@@ -337,25 +338,13 @@ export default function AppointmentsScreen() {
   // Jotai clinic atom
   const [storedClinics, setStoredClinics] = useAtom(clinicsAtom);
 
-  // List state
-  const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-
   // Filter state
   const [activeStatus, setActiveStatus] = useState<BookingStatus>("all");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterState>({});
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchQuery = useRef("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const activeFilters = [filters.appointmentType, filters.clinicId].filter(
     Boolean,
@@ -374,61 +363,38 @@ export default function AppointmentsScreen() {
       .catch(console.warn);
   }, []);
 
-  // ── Fetch appointments ─────────────────────────────────────────────────────
+  // ── Fetch appointments via React Query ─────────────────────────────────────
 
-  const fetchAppointments = useCallback(
-    async (
-      opts: { page?: number; replace?: boolean; refresh?: boolean } = {},
-    ) => {
-      const { page = 1, replace = true, refresh = false } = opts;
-      try {
-        if (refresh) setRefreshing(true);
-        else if (page === 1) setLoading(true);
-        else setLoadingMore(true);
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+    refetch,
+  } = useInfiniteDoctorAppointments({
+    status: activeStatus,
+    search: debouncedSearch || undefined,
+    appointmentType: filters.appointmentType,
+    clinicId: filters.clinicId,
+    limit: LIMIT,
+  });
 
-        const params: GetDoctorAppointmentsParams = {
-          status: activeStatus,
-          search: searchQuery.current || undefined,
-          appointmentType: filters.appointmentType,
-          clinicId: filters.clinicId,
-          page,
-          limit: LIMIT,
-        };
-
-        const res = await appointmentApi.getDoctorAppointments(params);
-        setAppointments((prev) =>
-          replace ? res.appointments : [...prev, ...res.appointments],
-        );
-        setPagination(res.pagination);
-      } catch (e) {
-        console.error("fetchAppointments error:", e);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
-      }
-    },
-    [activeStatus, filters],
-  );
-
-  useEffect(() => {
-    fetchAppointments({ page: 1, replace: true });
-  }, [fetchAppointments]);
+  // Flatten the pages array into a single array of appointments
+  const appointments = data?.pages.flatMap((page) => page.appointments) || [];
+  const totalItems = data?.pages[0]?.pagination.totalItems || 0;
 
   const handleSearch = (text: string) => {
     setSearch(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
-      searchQuery.current = text;
-      fetchAppointments({ page: 1, replace: true });
+      setDebouncedSearch(text);
     }, 400);
   };
 
-  const onRefresh = () =>
-    fetchAppointments({ page: 1, replace: true, refresh: true });
   const onEndReached = () => {
-    if (!loadingMore && pagination.currentPage < pagination.totalPages) {
-      fetchAppointments({ page: pagination.currentPage + 1, replace: false });
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
   };
 
@@ -455,6 +421,9 @@ export default function AppointmentsScreen() {
 
   // ── Status quick-actions ───────────────────────────────────────────────────
 
+  const { mutate: updateStatus, isPending: isUpdatingStatus } =
+    useUpdateAppointmentStatus();
+
   const handleStatusUpdate = useCallback(
     async (id: string, status: "confirmed" | "rejected", label: string) => {
       Alert.alert(
@@ -465,26 +434,12 @@ export default function AppointmentsScreen() {
           {
             text: label,
             style: status === "rejected" ? "destructive" : "default",
-            onPress: async () => {
-              try {
-                setUpdatingId(id);
-                await appointmentApi.updateStatus(id, status);
-                setAppointments((prev) =>
-                  prev.map((a) =>
-                    a._id === id ? { ...a, bookingStatus: status } : a,
-                  ),
-                );
-              } catch {
-                Alert.alert("Error", "Failed to update appointment status.");
-              } finally {
-                setUpdatingId(null);
-              }
-            },
+            onPress: () => updateStatus({ id, status }),
           },
         ],
       );
     },
-    [],
+    [updateStatus],
   );
 
   const onAccept = useCallback(
@@ -525,13 +480,24 @@ export default function AppointmentsScreen() {
               Appointments
             </Text>
             <View className="flex-row items-center gap-2">
-              {pagination.totalItems > 0 && (
+              {totalItems > 0 && (
                 <View className="bg-indigo-100 px-3 py-1 rounded-full">
                   <Text className="text-indigo-700 text-xs font-bold">
-                    {pagination.totalItems}
+                    {totalItems}
                   </Text>
                 </View>
               )}
+              {/* refresh button */}
+              <Button
+                onPress={() => refetch()}
+                leftIcon="refresh-outline"
+                leftIconSize={16}
+                leftIconColor={"white"}
+                // title="Refresh"
+                className={
+                  "bg-indigo-600 border border-indigo-600 rounded-2xl px-2 py-2"
+                }
+              />
               {/* Filter button */}
               <Button
                 onPress={openFilterSheet}
@@ -542,7 +508,7 @@ export default function AppointmentsScreen() {
                   activeFilters > 0 ? `Filters (${activeFilters})` : "Filter"
                 }
                 className={
-                  "bg-indigo-600 border border-indigo-600 rounded-xl px-3 py-2"
+                  "bg-indigo-600 border border-indigo-600 rounded-2xl px-3 py-2"
                 }
                 // style={
                 //   activeFilters === 0
@@ -608,7 +574,9 @@ export default function AppointmentsScreen() {
             return (
               <Button
                 key={tab.key}
-                onPress={() => setActiveStatus(tab.key)}
+                onPress={() => {
+                  setActiveStatus(tab.key);
+                }}
                 title={tab.label}
                 className={`rounded-full px-4 py-1 border shadow-none ${
                   isActive
@@ -623,8 +591,7 @@ export default function AppointmentsScreen() {
           })}
         </ScrollView>
 
-        {/* ── List ────────────────────────────────────────────────────────── */}
-        {loading ? (
+        {isLoading && appointments.length === 0 ? (
           <ScrollView
             scrollEnabled={false}
             contentContainerStyle={{ paddingBottom: 40 }}
@@ -641,14 +608,6 @@ export default function AppointmentsScreen() {
             contentContainerStyle={{
               paddingBottom: insets.bottom + 120,
             }}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.indigo[600]}
-                colors={[colors.indigo[600]]}
-              />
-            }
             onEndReached={onEndReached}
             onEndReachedThreshold={0.3}
             ListEmptyComponent={
@@ -667,7 +626,7 @@ export default function AppointmentsScreen() {
               </View>
             }
             ListFooterComponent={
-              loadingMore ? (
+              isFetchingNextPage ? (
                 <View className="py-6 items-center">
                   <ActivityIndicator color={colors.indigo[600]} />
                 </View>
@@ -677,7 +636,7 @@ export default function AppointmentsScreen() {
         )}
 
         {/* ── Updating overlay ────────────────────────────────────────────── */}
-        {updatingId && (
+        {isUpdatingStatus && (
           <View
             className="absolute inset-0 items-center justify-center"
             style={{ backgroundColor: "rgba(0,0,0,0.2)" }}

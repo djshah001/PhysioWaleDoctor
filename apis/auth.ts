@@ -23,14 +23,17 @@ export const authApi = {
     }),
 
   // Sign Up - Create new doctor with complete profile
-  signUp: (data: any) =>
-    api.post<AuthResponse>("/auth/signup", { ...data, context: "doctor" }),
+  signUp: (data: any) => api.post<AuthResponse>("/auth/signup", data),
 
   // Upload Profile Pic
   uploadProfilePic: (formData: FormData) =>
-    api.post<{ success: boolean; filePath: string }>("/auth/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+    api.post<{ success: boolean; data: { filePath: string } }>(
+      "/auth/upload",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    ),
 
   // Login with Phone/Password
   login: (data: LoginPayload) =>
@@ -38,7 +41,7 @@ export const authApi = {
 
   // Get Current User Data
   getCurrentUser: () =>
-    api.get<{ loggedInData: any }>("/auth/getLoggedInData/doctor"),
+    api.get<{ data: { loggedInData: any } }>("/auth/getLoggedInData/doctor"),
 
   logout: () => api.post("/auth/logout"),
 

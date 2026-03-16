@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAtom } from "jotai";
-import { clinicApi } from "~/apis/clinic";
+import { useClinicSummary } from "~/apis/hooks/useClinics";
 import { ClinicSummary } from "~/types/models";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -27,6 +27,7 @@ import { Image } from "expo-image";
 import { MotiView, MotiText } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 import { userDataAtom } from "~/store";
+import { Button } from "~/components/ui/button";
 
 const { width } = Dimensions.get("window");
 
@@ -35,33 +36,17 @@ const ClinicScreen = () => {
   const _insets = useSafeAreaInsets();
   const [user, setUser] = useAtom(userDataAtom);
 
-  // console.log("user", user);
-  const [clinics, setClinics] = useState<ClinicSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const fetchClinics = async () => {
-    try {
-      const response = await clinicApi.getClinicSummary();
-      if (response.data) {
-        setClinics(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching clinics:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClinics();
-  }, []);
+  const {
+    data: qData,
+    isLoading: loading,
+    refetch,
+    isRefetching,
+  } = useClinicSummary({ enabled: !!user?._id });
+  const clinics = qData || [];
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchClinics();
-  }, []);
+    refetch();
+  }, [refetch]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -328,7 +313,7 @@ const ClinicScreen = () => {
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefetching}
             onRefresh={onRefresh}
             tintColor={colors.indigo[600]}
           />
@@ -359,7 +344,7 @@ const ClinicScreen = () => {
           </MotiText>
         </View>
 
-        {loading && !refreshing ? (
+        {loading && !isRefetching ? (
           renderSkeleton()
         ) : clinics.length > 0 ? (
           <View>{clinics.map(renderClinicCard)}</View>
@@ -369,7 +354,7 @@ const ClinicScreen = () => {
               <MotiView
                 from={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="w-28 h-28 bg-indigo-50 rounded-full items-center justify-center mb-6 shadow-sm border border-indigo-100"
+                className="w-28 h-28 self-center bg-indigo-50 rounded-full items-center justify-center mb-6 shadow-sm border border-indigo-100"
               >
                 <MaterialCommunityIcons
                   name="hospital-marker"
@@ -384,14 +369,11 @@ const ClinicScreen = () => {
                 You haven't added any clinics to your profile yet. Start by
                 creating your first clinic to manage appointments.
               </Text>
-              <TouchableOpacity
+              <Button
+                title="Register New Clinic"
                 onPress={() => router.push("/clinics/register")}
                 className="bg-indigo-600 px-10 py-4 rounded-2xl shadow-lg shadow-indigo-300 w-full active:bg-indigo-700"
-              >
-                <Text className="text-white font-bold text-center text-lg">
-                  Register New Clinic
-                </Text>
-              </TouchableOpacity>
+              />
             </GlassCard>
           </View>
         )}

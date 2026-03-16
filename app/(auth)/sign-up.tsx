@@ -20,7 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-
+import { ObjectId } from "bson";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../store/toastStore";
 import DynamicBackground from "~/components/authComp/DynamicBackground";
@@ -78,12 +78,14 @@ const SignUp = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   const stepLabels = ["Account", "Personal", "Professional", "Consultation"];
+  const [_id] = useState(new ObjectId().toString());
 
   // Form Data
   const [formData, setFormData] = useState(
     __DEV__
       ? {
           // Step 1
+          _id: _id,
           name: "John Doe",
           phoneNumber: "1234567890",
           countryCode: "+91",
@@ -106,6 +108,7 @@ const SignUp = () => {
         }
       : {
           // Step 1
+          _id: _id,
           name: "",
           phoneNumber: "",
           countryCode: "+91",
@@ -252,6 +255,7 @@ const SignUp = () => {
       const formDataUpload = new FormData();
       formDataUpload.append("context", "doctor");
       formDataUpload.append("phoneNumber", formData.phoneNumber);
+      formDataUpload.append("id", _id); // Use pre-generated ObjectID
 
       // @ts-ignore
       formDataUpload.append("profilePic", {
@@ -262,8 +266,9 @@ const SignUp = () => {
 
       const res = await authApi.uploadProfilePic(formDataUpload);
       const resData = res.data as any;
-      const profilePic = resData.data.profilePic;
-      updateFormData("profilePic", profilePic);
+      const profilePicUrl =
+        resData?.data?.profilePic || resData?.data?.filePath;
+      updateFormData("profilePic", profilePicUrl);
 
       showToast(
         "success",
@@ -276,6 +281,8 @@ const SignUp = () => {
     }
     setUploading(false);
   };
+
+  // console.log("formData", JSON.stringify(formData, null, 2));
 
   const handleSubmit = async () => {
     try {
@@ -302,8 +309,11 @@ const SignUp = () => {
         licenseNumber: formData.licenseNumber,
         experienceYears: Number(formData.experienceYears) || 0,
         consultationFee: Number(formData.consultationFee),
-        context: "doctor",
+        context: "doctor" as const,
+        _id, // include BSON ID
       };
+
+      // console.log("payload", JSON.stringify(payload, null, 2));
 
       const res = await register(payload);
       if (res.success) {
@@ -362,7 +372,6 @@ const SignUp = () => {
               error={errors.phoneNumber}
               returnKeyType="next"
               onSubmitEditing={() => passwordRef.current?.focus()}
-              blurOnSubmit={false}
               prefix={
                 <CustomCountryPicker
                   countryCode={country.code}

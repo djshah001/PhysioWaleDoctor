@@ -45,41 +45,41 @@ const GradientCard: React.FC<GradientCardProps> = ({
   if (!gradientColors) {
     switch (variant) {
       case "primary":
-        colorsList = colors.gradients.primary;
+        colorsList = colors.gradients.primary as unknown as string[];
         break;
       case "secondary":
-        colorsList = colors.gradients.secondary;
+        colorsList = colors.gradients.secondary as unknown as string[];
         break;
       case "secondary2":
-        colorsList = colors.gradients.secondary2;
+        colorsList = colors.gradients.secondary2 as unknown as string[];
         break;
       case "accent":
-        colorsList = colors.gradients.accent;
+        colorsList = colors.gradients.accent as unknown as string[];
         break;
       case "success":
-        colorsList = colors.gradients.success;
+        colorsList = colors.gradients.success as unknown as string[];
         break;
       case "warning":
-        colorsList = colors.gradients.warning;
+        colorsList = colors.gradients.warning as unknown as string[];
         break;
       case "error":
-        colorsList = colors.gradients.error;
+        colorsList = colors.gradients.error as unknown as string[];
         break;
       case "glass":
-        colorsList = colors.gradients.glass;
+        colorsList = colors.gradients.glass as unknown as string[];
         break;
       case "accentGlass":
-        colorsList = colors.gradients.accentGlass;
+        colorsList = colors.gradients.accentGlass as unknown as string[];
         break;
       case "primaryGlass":
-        colorsList = colors.gradients.primaryGlass;
+        colorsList = colors.gradients.primaryGlass as unknown as string[];
         break;
       case "dark":
-        colorsList = colors.gradients.dark;
+        colorsList = colors.gradients.dark as unknown as string[];
         break;
       case "light":
       default:
-        colorsList = colors.gradients.light;
+        colorsList = colors.gradients.light as unknown as string[];
         break;
     }
   } else {
@@ -90,7 +90,7 @@ const GradientCard: React.FC<GradientCardProps> = ({
     <View
       className={twMerge(
         "rounded-2xl overflow-hidden mb-4 bg-white shadow-sm elevation-2",
-        className
+        className,
       )}
       style={style}
     >

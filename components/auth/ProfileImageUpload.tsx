@@ -7,6 +7,7 @@ import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
 import { Button } from "../ui/button";
+import { blurhash } from "../Utility/Repeatables";
 
 interface ProfileImageUploadProps {
   imageUri?: string;
@@ -61,7 +62,9 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({
             <Image
               source={{ uri: imageUri }}
               className="w-full h-full"
+              style={{ width: "100%", height: "100%" }}
               contentFit="cover"
+              placeholder={blurhash}
             />
           ) : (
             <BlurView

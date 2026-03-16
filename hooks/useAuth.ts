@@ -253,9 +253,12 @@ export const useAuth = () => {
   const refreshUser = async () => {
     try {
       const response = await authApi.getCurrentUser();
-      const userData = response.data?.loggedInData;
+      const userData = response.data?.data?.loggedInData;
 
-      console.log(response.data);
+      // console.log(
+      //   "Refresh User Data:",
+      //   JSON.stringify(response.data.data, null, 2),
+      // );
 
       if (userData) {
         await AsyncStorage.setItem("userData", JSON.stringify(userData));

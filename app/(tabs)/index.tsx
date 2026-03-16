@@ -258,10 +258,12 @@ const TodayGrid = ({ data }: { data: DashboardData["todayStats"] }) => {
               className="flex-1"
             >
               <GlassCard
-                className="flex-1 rounded-2xl"
-                contentContainerClassName="p-4 rounded-2xl"
+                className="flex-1 rounded-3xl"
+                contentContainerClassName="p-5 rounded-2xl"
               >
-                <View className={`self-start p-2 rounded-xl mb-2 ${c.bgCls}`}>
+                <View
+                  className={`self-start p-2 rounded-xl mb-2 mx-[-6px] ${c.bgCls}`}
+                >
                   <Ionicons name={c.icon} size={16} color={c.iconColor} />
                 </View>
                 <Text
@@ -365,9 +367,11 @@ const PeriodStats = ({
             <GlassCard
               style={{ width: cardWidth }}
               className="rounded-3xl"
-              contentContainerClassName="p-4 rounded-3xl"
+              contentContainerClassName="p-5 rounded-3xl"
             >
-              <View className={`self-start p-2 rounded-xl mb-3 ${c.bgCls}`}>
+              <View
+                className={`self-start p-2 rounded-xl mb-3 mx-[-8px] ${c.bgCls}`}
+              >
                 <Ionicons name={c.icon} size={16} color={c.iconColor} />
               </View>
               <Text
