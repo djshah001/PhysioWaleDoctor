@@ -9,7 +9,7 @@ import { router } from "expo-router";
 // Define the base URL - move to env later
 // const API_URL =
 //   process.env.EXPO_PUBLIC_API_URL || "http://10.118.240.172:5000/api/v1"; // Update with your actual API URL
-const API_URL = "http://10.149.168.172:5000/api/v"; // Update with your actual API URL
+const API_URL = "https://phisowale-api-921421639525.asia-south1.run.app/api/v"; // Update with your actual API URL
 
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
