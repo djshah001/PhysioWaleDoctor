@@ -327,13 +327,25 @@ const ClinicScreen = () => {
         />
 
         <View className="px-6 mb-6">
-          <MotiText
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            className="text-3xl font-bold text-gray-900"
-          >
-            My Clinics
-          </MotiText>
+          <View className="flex-row items-center justify-between">
+            <MotiText
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              className="text-3xl font-bold text-gray-900 flex-1"
+            >
+              My Clinics
+            </MotiText>
+
+            {/* Add Clinic Button — inline in header, no overlap with tab bar */}
+            <Button
+              title="Add Clinic "
+              onPress={() => router.push("/clinics/register")}
+              className="bg-indigo-800 rounded-full  shadow-lg shadow-indigo-300 active:bg-indigo-700"
+              textClassName="text-white font-semibold text-sm"
+              leftIcon={<Ionicons name="add" size={20} color="white" />}
+            />
+          </View>
+
           <MotiText
             from={{ opacity: 0, translateY: 10 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -378,22 +390,6 @@ const ClinicScreen = () => {
           </View>
         )}
       </ScrollView>
-
-      {/* Floating Action Button for adding clinic */}
-      {!loading && clinics.length > 0 && (
-        <Animated.View
-          entering={FadeInUp.delay(500).springify()}
-          className="absolute bottom-6 right-6"
-        >
-          <TouchableOpacity
-            onPress={() => router.push("/clinics/register")}
-            className="bg-gray-900 w-16 h-16 rounded-full items-center justify-center shadow-2xl shadow-black/40 border border-white/10"
-            style={{ elevation: 8 }}
-          >
-            <Ionicons name="add" size={32} color="white" />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
     </GradientBackground>
   );
 };

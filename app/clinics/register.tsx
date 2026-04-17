@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useReducer } from "react";
 import {
   View,
   Text,
@@ -16,11 +16,12 @@ import Animated, {
 import { StatusBar } from "expo-status-bar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as Localization from "expo-localization";
 import { ObjectId } from "bson";
 
 import { useAuth } from "~/hooks/useAuth";
 import { clinicApi } from "~/apis/clinic";
-import { authApi } from "~/apis/auth";
+// import { authApi } from "~/apis/auth"; // Unused in original
 import { GradientBackground } from "~/components/ui/premium/GradientBackground";
 import {
   DaySchedule,
@@ -46,86 +47,17 @@ const STEP_NAMES = [
   "Review & Submit",
 ];
 
+// Helper to update our centralized form state
+const formReducer = (state: any, action: any) => ({ ...state, ...action });
+
 const ClinicRegistration = () => {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
 
+  // 1. UI & Logic States
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
-
-  // Generate clinic ID on mount
-  const [clinicId, setClinicId] = useState("");
-
-  React.useEffect(() => {
-    const newClinicId = new ObjectId().toString();
-    setClinicId(newClinicId);
-  }, []);
-
-  // Basic Info
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
-  const [email, setEmail] = useState("");
-  const [website, setWebsite] = useState("");
-  const [consultationFee, setConsultationFee] = useState("500");
-
-  // Location
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [country, setCountry] = useState("India");
-  const [pincode, setPincode] = useState("");
-  const [coordinates, setCoordinates] = useState<[number, number]>([0, 0]);
-
-  // Timings (Shifts-based)
-  const [open24hrs, setOpen24hrs] = useState(false);
-  const [timing, setTiming] = useState<{
-    sunday: DaySchedule;
-    monday: DaySchedule;
-    tuesday: DaySchedule;
-    wednesday: DaySchedule;
-    thursday: DaySchedule;
-    friday: DaySchedule;
-    saturday: DaySchedule;
-  }>({
-    sunday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
-    monday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
-    tuesday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
-    wednesday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
-    thursday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
-    friday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
-    saturday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
-  });
-
-  // Configuration
-  const [appointmentConfig, setAppointmentConfig] = useState<
-    Partial<AppointmentConfig>
-  >({
-    slotDuration: 30,
-    bufferTime: 5,
-    advanceBookingLimit: 30,
-    instantBooking: true,
-    isVirtualConsultationAvailable: false,
-  });
-  const [homeVisitConfig, setHomeVisitConfig] = useState<
-    Partial<HomeVisitConfig>
-  >({
-    isAvailable: false,
-    radiusKm: 5,
-    travelFee: 0,
-    minBookingAmount: 0,
-  });
-
-  // Metadata
-  const [clinicType, setClinicType] = useState("Private Clinic");
-  const [specializations, setSpecializations] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-
-  // Facilities
-  const [facilities, setFacilities] = useState<string[]>([]);
-
-  // Images with upload state
   const [imageStates, setImageStates] = useState<
     {
       asset: ImagePicker.ImagePickerAsset;
@@ -135,42 +67,85 @@ const ClinicRegistration = () => {
     }[]
   >([]);
 
-  // Services
-  const [services, setServices] = useState<
-    {
-      name: string;
-      description: string;
-      duration: number;
-      price: number;
-      category: string;
-    }[]
-  >([]);
+  // Initialize once on mount without triggering a re-render via useEffect
+  const [clinicId] = useState(() => new ObjectId().toString());
 
-  // Financials
-  const [platformCommissionRate, setPlatformCommissionRate] = useState(10);
-  const [gstNumber, setGstNumber] = useState("");
+  // Get device timezone via expo-localization
+  const timezone = Localization.getCalendars()[0]?.timeZone || "UTC";
 
-  // Social Links
-  const [socialLinks, setSocialLinks] = useState<Partial<SocialLinks>>({});
+  // 2. Centralized Form Data State
+  const [formData, updateForm] = useReducer(formReducer, {
+    name: "",
+    description: "",
+    phoneNumber: user?.phoneNumber || "",
+    email: "",
+    website: "",
+    consultationFee: "500",
+    address: "",
+    city: "",
+    state: "",
+    country: "India",
+    pincode: "",
+    coordinates: [0, 0] as [number, number],
+    open24hrs: false,
+    timing: {
+      sunday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
+      monday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
+      tuesday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
+      wednesday: {
+        isClosed: false,
+        shifts: [{ open: "09:00", close: "18:00" }],
+      },
+      thursday: {
+        isClosed: false,
+        shifts: [{ open: "09:00", close: "18:00" }],
+      },
+      friday: { isClosed: false, shifts: [{ open: "09:00", close: "18:00" }] },
+      saturday: {
+        isClosed: false,
+        shifts: [{ open: "09:00", close: "18:00" }],
+      },
+    },
+    appointmentConfig: {
+      slotDuration: 30,
+      bufferTime: 5,
+      advanceBookingLimit: 30,
+      instantBooking: true,
+      isVirtualConsultationAvailable: false,
+    } as Partial<AppointmentConfig>,
+    homeVisitConfig: {
+      isAvailable: false,
+      radiusKm: 5,
+      travelFee: 0,
+      minBookingAmount: 0,
+    } as Partial<HomeVisitConfig>,
+    clinicType: "Private Clinic",
+    specializations: [] as string[],
+    tags: [] as string[],
+    facilities: [] as string[],
+    services: [] as Service[],
+    platformCommissionRate: 10,
+    gstNumber: "",
+    socialLinks: {} as Partial<SocialLinks>,
+    timezone,
+  });
 
-  // Upload a single image
+  // Image Upload Logic
   const uploadImage = async (
     asset: ImagePicker.ImagePickerAsset,
     index: number,
   ) => {
     try {
-      const formData = new FormData();
-      // console.log("asset", asset);
-      formData.append("images", {
+      const uploadData = new FormData();
+      uploadData.append("images", {
         uri: asset.uri,
         type: asset.mimeType || "image/jpeg",
         name: asset.fileName || `clinic-${index}.jpg`,
       } as any);
-      formData.append("clinicId", clinicId); // Add clinic ID
+      uploadData.append("clinicId", clinicId);
 
-      const response = await clinicApi.uploadClinicImages(formData);
+      const response = await clinicApi.uploadClinicImages(uploadData);
       if (response.data.success && response.data.data.filePaths.length > 0) {
-        // Update state with uploaded URL
         setImageStates((prev) =>
           prev.map((state, i) =>
             i === index
@@ -188,7 +163,7 @@ const ClinicRegistration = () => {
       }
     } catch (error: any) {
       showToast("error", "Upload failed");
-      console.log("error", error.response.data.errors[0].msg);
+      console.log("error", error.response?.data?.errors?.[0]?.msg);
       setImageStates((prev) =>
         prev.map((state, i) =>
           i === index
@@ -203,9 +178,7 @@ const ClinicRegistration = () => {
     }
   };
 
-  // Handle new images selected
   const handleImagesSelected = (assets: ImagePicker.ImagePickerAsset[]) => {
-    // Add new images to state with uploading status
     const newImageStates = assets.map((asset) => ({
       asset,
       uploadedUrl: null,
@@ -215,19 +188,16 @@ const ClinicRegistration = () => {
 
     setImageStates((prev) => [...prev, ...newImageStates]);
 
-    // Start uploading each image in background
     assets.forEach((asset, i) => {
       const actualIndex = imageStates.length + i;
       uploadImage(asset, actualIndex);
     });
   };
 
-  // Remove image
   const handleRemoveImage = (index: number) => {
     setImageStates((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Retry failed upload
   const handleRetryUpload = (index: number) => {
     setImageStates((prev) =>
       prev.map((state, i) =>
@@ -237,47 +207,51 @@ const ClinicRegistration = () => {
     uploadImage(imageStates[index].asset, index);
   };
 
+  // Step Validation
   const validateStep = (step: number): boolean => {
     switch (step) {
-      case 0: // Clinic Details (Basic Info + Metadata + Social)
-        if (!name.trim()) {
+      case 0:
+        if (!formData.name.trim()) {
           showToast("error", "Clinic name is required");
           return false;
         }
-        if (!description.trim()) {
+        if (!formData.description.trim()) {
           showToast("error", "Description is required");
           return false;
         }
-        if (!phoneNumber.trim()) {
+        if (!formData.phoneNumber.trim()) {
           showToast("error", "Phone number is required");
           return false;
         }
-        if (!consultationFee || parseFloat(consultationFee) <= 0) {
+        if (
+          !formData.consultationFee ||
+          parseFloat(formData.consultationFee) <= 0
+        ) {
           showToast("error", "Valid consultation fee is required");
           return false;
         }
         return true;
 
-      case 1: // Location & Contact
+      case 1:
         if (
-          !address.trim() ||
-          !city.trim() ||
-          !state.trim() ||
-          !country.trim()
+          !formData.address.trim() ||
+          !formData.city.trim() ||
+          !formData.state.trim() ||
+          !formData.country.trim()
         ) {
           showToast("error", "Complete address is required");
           return false;
         }
-        if (coordinates[0] === 0 && coordinates[1] === 0) {
+        if (formData.coordinates[0] === 0 && formData.coordinates[1] === 0) {
           showToast("error", "Please set location coordinates");
           return false;
         }
         return true;
 
-      case 2: // Schedule & Services (Timings + Config + Services)
-        if (!open24hrs) {
-          const hasValidTiming = Object.values(timing).some(
-            (day) => !day.isClosed && day.shifts.length > 0,
+      case 2:
+        if (!formData.open24hrs) {
+          const hasValidTiming = Object.values(formData.timing).some(
+            (day: any) => !day.isClosed && day.shifts.length > 0,
           );
           if (!hasValidTiming) {
             showToast("error", "Set timings for at least one day");
@@ -286,8 +260,8 @@ const ClinicRegistration = () => {
         }
         return true;
 
-      case 3: // Facilities & Gallery
-        if (facilities.length === 0) {
+      case 3:
+        if (formData.facilities.length === 0) {
           showToast("error", "Select at least one facility");
           return false;
         }
@@ -297,46 +271,35 @@ const ClinicRegistration = () => {
         }
         return true;
 
-      case 4: // Review & Submit
-        return true;
-
       default:
         return true;
     }
   };
 
   const handleNext = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < STEP_NAMES.length - 1) {
-        setCurrentStep(currentStep + 1);
-      }
+    if (validateStep(currentStep) && currentStep < STEP_NAMES.length - 1) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
-
     setLoading(true);
+
     try {
-      // Check if any images are still uploading
       const uploadingCount = imageStates.filter(
         (state) => state.uploading,
       ).length;
-      const failedCount = imageStates.filter((state) => state.error).length;
 
       if (uploadingCount > 0) {
         showToast(
           "info",
           `Uploading ${uploadingCount} of ${imageStates.length} images...`,
         );
-
-        // Wait for all uploads to complete
         await new Promise<void>((resolve) => {
           const checkInterval = setInterval(() => {
             const stillUploading = imageStates.filter(
@@ -350,7 +313,6 @@ const ClinicRegistration = () => {
         });
       }
 
-      // Check for failed uploads after waiting
       const finalFailedCount = imageStates.filter(
         (state) => state.error,
       ).length;
@@ -363,7 +325,6 @@ const ClinicRegistration = () => {
         return;
       }
 
-      // Get uploaded URLs
       const uploadedUrls = imageStates
         .map((state) => state.uploadedUrl)
         .filter((url): url is string => url !== null);
@@ -374,44 +335,47 @@ const ClinicRegistration = () => {
         return;
       }
 
-      // Prepare clinic data with all new fields
       const clinicData = {
-        _id: clinicId, // Use pre-generated ID
-        name,
-        description,
-        address,
-        city,
-        state,
-        country,
-        pincode,
-        phoneNumber,
-        email: email || undefined,
-        website: website || undefined,
+        _id: clinicId,
+        name: formData.name,
+        description: formData.description,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        pincode: formData.pincode,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email || undefined,
+        website: formData.website || undefined,
         location: {
           type: "Point" as const,
-          coordinates,
+          coordinates: formData.coordinates,
         },
-        open24hrs,
-        timing,
+        open24hrs: formData.open24hrs,
+        timing: formData.timing,
         images: uploadedUrls,
-        facilities: facilities as any, // Type assertion for enum compatibility
-        consultationFee: parseFloat(consultationFee),
-        services: services as Service[], // Backend will create full Service objects
-        // New fields
-        appointmentConfig: appointmentConfig.slotDuration
-          ? (appointmentConfig as AppointmentConfig)
+        facilities: formData.facilities,
+        consultationFee: parseFloat(formData.consultationFee),
+        services: formData.services,
+        appointmentConfig: formData.appointmentConfig.slotDuration
+          ? formData.appointmentConfig
           : undefined,
-        homeVisitConfig: homeVisitConfig.isAvailable
-          ? (homeVisitConfig as HomeVisitConfig)
+        homeVisitConfig: formData.homeVisitConfig.isAvailable
+          ? formData.homeVisitConfig
           : undefined,
-        clinicType: clinicType || undefined,
+        clinicType: formData.clinicType || undefined,
         specializations:
-          specializations.length > 0 ? specializations : undefined,
-        tags: tags.length > 0 ? tags : undefined,
+          formData.specializations.length > 0
+            ? formData.specializations
+            : undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
         socialLinks:
-          Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
-        platformCommissionRate: platformCommissionRate || undefined,
-        gstNumber: gstNumber || undefined,
+          Object.keys(formData.socialLinks).length > 0
+            ? formData.socialLinks
+            : undefined,
+        platformCommissionRate: formData.platformCommissionRate || undefined,
+        gstNumber: formData.gstNumber || undefined,
+        timezone: formData.timezone,
       };
 
       const res = await clinicApi.createClinic(clinicData as Partial<Clinic>);
@@ -423,11 +387,11 @@ const ClinicRegistration = () => {
     } catch (error: any) {
       console.error(
         "Clinic registration error:",
-        error.response.data.errors[0].msg,
+        error.response?.data?.errors?.[0]?.msg,
       );
       showToast(
         "error",
-        error.response?.data?.errors[0].msg || "Failed to register clinic",
+        error.response?.data?.errors?.[0]?.msg || "Failed to register clinic",
       );
     } finally {
       setLoading(false);
@@ -436,75 +400,77 @@ const ClinicRegistration = () => {
 
   const renderStep = () => {
     switch (currentStep) {
-      case 0: // Clinic Details
+      case 0:
         return (
           <ClinicDetails
-            name={name}
-            setName={setName}
-            description={description}
-            setDescription={setDescription}
-            phoneNumber={phoneNumber}
-            setPhoneNumber={setPhoneNumber}
-            email={email}
-            setEmail={setEmail}
-            website={website}
-            setWebsite={setWebsite}
-            consultationFee={consultationFee}
-            setConsultationFee={setConsultationFee}
-            clinicType={clinicType}
-            setClinicType={setClinicType}
-            specializations={specializations}
-            setSpecializations={setSpecializations}
-            tags={tags}
-            setTags={setTags}
-            socialLinks={socialLinks}
-            setSocialLinks={setSocialLinks}
+            name={formData.name}
+            setName={(val) => updateForm({ name: val })}
+            description={formData.description}
+            setDescription={(val) => updateForm({ description: val })}
+            phoneNumber={formData.phoneNumber}
+            setPhoneNumber={(val) => updateForm({ phoneNumber: val })}
+            email={formData.email}
+            setEmail={(val) => updateForm({ email: val })}
+            website={formData.website}
+            setWebsite={(val) => updateForm({ website: val })}
+            consultationFee={formData.consultationFee}
+            setConsultationFee={(val) => updateForm({ consultationFee: val })}
+            clinicType={formData.clinicType}
+            setClinicType={(val) => updateForm({ clinicType: val })}
+            specializations={formData.specializations}
+            setSpecializations={(val) => updateForm({ specializations: val })}
+            tags={formData.tags}
+            setTags={(val) => updateForm({ tags: val })}
+            socialLinks={formData.socialLinks}
+            setSocialLinks={(val) => updateForm({ socialLinks: val })}
           />
         );
-      case 1: // Location & Contact
+      case 1:
         return (
           <ClinicLocation
-            address={address}
-            setAddress={setAddress}
-            city={city}
-            setCity={setCity}
-            state={state}
-            setState={setState}
-            country={country}
-            setCountry={setCountry}
-            pincode={pincode}
-            setPincode={setPincode}
-            coordinates={coordinates}
-            setCoordinates={setCoordinates}
+            address={formData.address}
+            setAddress={(val) => updateForm({ address: val })}
+            city={formData.city}
+            setCity={(val) => updateForm({ city: val })}
+            state={formData.state}
+            setState={(val) => updateForm({ state: val })}
+            country={formData.country}
+            setCountry={(val) => updateForm({ country: val })}
+            pincode={formData.pincode}
+            setPincode={(val) => updateForm({ pincode: val })}
+            coordinates={formData.coordinates}
+            setCoordinates={(val) => updateForm({ coordinates: val })}
           />
         );
-      case 2: // Schedule & Services
+      case 2:
         return (
           <ScheduleServices
-            open24hrs={open24hrs}
-            setOpen24hrs={setOpen24hrs}
-            timing={timing}
-            setTiming={setTiming}
-            appointmentConfig={appointmentConfig}
-            setAppointmentConfig={setAppointmentConfig}
-            homeVisitConfig={homeVisitConfig}
-            setHomeVisitConfig={setHomeVisitConfig}
-            services={services}
-            setServices={setServices}
+            open24hrs={formData.open24hrs}
+            setOpen24hrs={(val) => updateForm({ open24hrs: val })}
+            timing={formData.timing}
+            setTiming={(val) => updateForm({ timing: val })}
+            appointmentConfig={formData.appointmentConfig}
+            setAppointmentConfig={(val) =>
+              updateForm({ appointmentConfig: val })
+            }
+            homeVisitConfig={formData.homeVisitConfig}
+            setHomeVisitConfig={(val) => updateForm({ homeVisitConfig: val })}
+            services={formData.services}
+            setServices={(val) => updateForm({ services: val })}
           />
         );
-      case 3: // Facilities & Gallery
+      case 3:
         return (
           <FacilitiesGallery
-            facilities={facilities}
-            setFacilities={setFacilities}
+            facilities={formData.facilities}
+            setFacilities={(val) => updateForm({ facilities: val })}
             imageStates={imageStates}
             onImagesSelected={handleImagesSelected}
             onRemoveImage={handleRemoveImage}
             onRetryUpload={handleRetryUpload}
           />
         );
-      case 4: // Review & Submit
+      case 4:
         return (
           <View className="flex-1">
             <Text className="text-2xl font-bold text-gray-900 mb-4">
@@ -513,7 +479,7 @@ const ClinicRegistration = () => {
             <Text className="text-gray-600 mb-6">
               Please review all information before submitting
             </Text>
-            {/* TODO: Add review summary sections */}
+            {/* Add review summary sections */}
           </View>
         );
       default:
@@ -583,6 +549,7 @@ const ClinicRegistration = () => {
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
+
         {/* Navigation Buttons */}
         <Animated.View
           entering={FadeInDown.delay(400).springify()}
@@ -609,7 +576,7 @@ const ClinicRegistration = () => {
               currentStep === STEP_NAMES.length - 1 ? handleSubmit : handleNext
             }
             style={{ flex: 1 }}
-            className=" h-14 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-300 items-center justify-center"
+            className="h-14 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-300 items-center justify-center"
             textClassName="text-white font-semibold text-lg"
             loading={loading}
             disabled={loading}
