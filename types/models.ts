@@ -443,3 +443,91 @@ export interface Review {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ─── Workout Prescription Types ─────────────────────────────────────────────
+
+export interface Exercise {
+  _id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  instructions?: string[];
+  targetMuscleGroups?: string[];
+  equipmentNeeded?: string[];
+  difficultyLevel?: "Beginner" | "Intermediate" | "Advanced";
+}
+
+export interface Template {
+  _id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  targetArea?: string;
+  createdBy: string;
+  exercises: {
+    originalExerciseId: string | Exercise;
+    exerciseId: {
+      _id: string;
+      name: string;
+      thumbnailUrl: string;
+      videoUrl: string;
+    };
+    targetSets: number;
+    targetReps: number;
+    targetDurationSecs?: number;
+    holdTimeSecs?: number;
+  }[];
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface TestResult {
+  _id: string;
+  userId: string | Patient;
+  categoryId: string | { _id: string; name: string; tags: string[] };
+  score: number;
+  percentage: number;
+  severity: "Normal" | "Mild" | "Moderate" | "Severe";
+  status: "Pending" | "Under Review" | "Prescribed" | "Archived";
+  assignedDoctorId?: string | Doctor;
+  answers: {
+    questionId: string;
+    selectedOptionText: string;
+    scoreGiven: number;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PrescriptionExercisePayload {
+  originalExerciseId: string;
+  targetSets: number;
+  targetReps: number;
+  targetDurationSecs?: number;
+  holdTimeSecs?: number;
+  doctorNotes?: string;
+}
+
+export interface ClinicalPrescriptionPayload {
+  testResultId: string;
+  patientId: string;
+  originalTemplateId?: string;
+  title: string;
+  frequencyPerWeek: number;
+  startDate: string;
+  endDate?: string;
+  exercises: PrescriptionExercisePayload[];
+  doctorNotes?: string;
+}
+
+export interface PrescriptionPayload {
+  patientId: string;
+  originalTemplateId?: string;
+  title: string;
+  frequencyPerWeek: number;
+  startDate: string;
+  endDate?: string;
+  exercises: PrescriptionExercisePayload[];
+}

@@ -17,7 +17,10 @@ import { MotiView } from "moti";
 import { GradientBackground } from "~/components/ui/premium/GradientBackground";
 import { GlassCard } from "~/components/ui/premium/GlassCard";
 import { doctorApi } from "~/apis/doctors";
-import { Patient, Appointment } from "~/types/models";
+import { Patient, Appointment, TestResult } from "~/types/models";
+
+import { TestResultCard } from "~/components/Clinical/TestResultCard";
+import { clinicalApi } from "~/apis/clinical";
 
 interface PatientDetailsResponse {
   patient: Patient;
@@ -117,6 +120,7 @@ export default function PatientDetailsScreen() {
   const insets = useSafeAreaInsets();
 
   const [data, setData] = useState<PatientDetailsResponse | null>(null);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,8 +131,15 @@ export default function PatientDetailsScreen() {
       else setLoading(true);
       setError(null);
 
-      const res = await doctorApi.getPatientDetails(id as string);
+      const [res, testRes] = await Promise.all([
+        doctorApi.getPatientDetails(id as string),
+        clinicalApi
+          .getPatientTestResults(id as string)
+          .catch(() => ({ data: { data: [] } })),
+      ]);
+
       setData(res.data?.data);
+      setTestResults(testRes.data?.data || []);
     } catch (err: any) {
       console.error("Error fetching patient details:", err);
       setError("Failed to load patient details. They might not exist.");
@@ -361,6 +372,57 @@ export default function PatientDetailsScreen() {
           </GlassCard>
         </MotiView>
 
+        {/* Test Results Section */}
+        <MotiView
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 350, delay: 175 }}
+          className="mb-4"
+        >
+          <GlassCard className="rounded-3xl" contentContainerClassName="p-5">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+                Clinical Assessments
+              </Text>
+              <View className="bg-white/50 px-2 py-0.5 rounded-full border border-white/60">
+                <Text className="text-[10px] font-bold text-slate-500">
+                  {testResults.length}
+                </Text>
+              </View>
+            </View>
+
+            {testResults.length === 0 ? (
+              <View className="bg-white/40 rounded-2xl border border-dashed border-white p-6 items-center">
+                <Ionicons
+                  name="flask-outline"
+                  size={28}
+                  color={colors.slate[400]}
+                  className="mb-2"
+                />
+                <Text className="text-slate-600 font-semibold text-center mt-2 mb-1">
+                  No Test Results
+                </Text>
+                <Text className="text-slate-400 text-xs text-center">
+                  Patient hasn't taken any self-assessments yet.
+                </Text>
+              </View>
+            ) : (
+              testResults.map((result) => (
+                <TestResultCard
+                  key={result._id}
+                  result={result as any}
+                  onPress={() => {
+                    // Navigate to test result review screen
+                    router.push(
+                      `/patients/${id}/test-result/${result._id}`,
+                    );
+                  }}
+                />
+              ))
+            )}
+          </GlassCard>
+        </MotiView>
+
         {/* Appointment History */}
         <MotiView
           from={{ opacity: 0, translateY: 10 }}
@@ -462,7 +524,7 @@ export default function PatientDetailsScreen() {
           >
             <TouchableOpacity
               onPress={() => {
-                console.log("Prescribe clicked");
+                router.push(`/patients/${id}/prescribe`);
               }}
               activeOpacity={0.8}
               className="bg-slate-800 rounded-2xl py-4 shadow-xl shadow-slate-300 flex-row justify-center items-center"

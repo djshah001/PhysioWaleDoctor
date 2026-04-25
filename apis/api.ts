@@ -8,8 +8,9 @@ import { router } from "expo-router";
 
 // Define the base URL - move to env later
 // const API_URL =
-//   process.env.EXPO_PUBLIC_API_URL || "http://10.118.240.172:5000/api/v1"; // Update with your actual API URL
+//   process.env.EXPO_PUBLIC_API_URL || "http://[IP_ADDRESS]/api/v1"; // Update with your actual API URL
 const API_URL = "https://phisowale-api-921421639525.asia-south1.run.app/api/v"; // Update with your actual API URL
+// const API_URL = "http://10.21.214.172:8080/api/v"; // Update with your actual API URL
 
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -51,10 +52,18 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Tracks when auth is completely gone so we stop all retry attempts
+let authFailed = false;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // If auth already failed entirely, reject immediately — no more retries
+    if (authFailed) {
+      return Promise.reject(error);
+    }
 
     // Check if error is 401 (Unauthorized) and we haven't already tried to refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -95,6 +104,9 @@ api.interceptors.response.use(
 
         console.log("Token refreshed successfully");
 
+        // Reset auth failure flag on successful refresh
+        authFailed = false;
+
         // Update tokens in AsyncStorage
         await Promise.all([
           AsyncStorage.setItem("authToken", accessToken),
@@ -111,6 +123,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
+
+        // Mark auth as fully failed — stop all queued/future retries
+        authFailed = true;
 
         // Process queued requests with error
         processQueue(refreshError, null);

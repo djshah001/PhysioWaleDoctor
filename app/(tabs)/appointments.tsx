@@ -47,6 +47,7 @@ const STATUS_TABS: { key: BookingStatus; label: string }[] = [
   { key: "completed", label: "Done" },
   { key: "cancelled", label: "Cancelled" },
   { key: "rejected", label: "Rejected" },
+  { key: "expired", label: "Expired" },
 ];
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; dot: string }> =
@@ -209,6 +210,7 @@ const AppointmentCard = React.memo(
       minute: "2-digit",
     });
     const isPending = item.bookingStatus === "pending";
+    const isExpired = item.status === "expired";
 
     return (
       <TouchableOpacity
@@ -244,7 +246,7 @@ const AppointmentCard = React.memo(
                 >
                   {patient?.name ?? "Unknown Patient"}
                 </Text>
-                <StatusBadge status={item.bookingStatus} />
+                <StatusBadge status={item.status as any} />
               </View>
               <Text
                 className="text-gray-500 text-[11px] mt-0.5 mb-1"
@@ -295,7 +297,7 @@ const AppointmentCard = React.memo(
           )}
 
           {/* Quick actions for pending */}
-          {isPending && (
+          {isPending && !isExpired && (
             <View style={cardStyles.actionRow} className="gap-0">
               <Button
                 onPress={() => onReject(item._id)}

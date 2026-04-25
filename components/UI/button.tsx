@@ -129,10 +129,7 @@ export const Button = forwardRef<View, ButtonProps>(
 
                   {title && (
                     <Text
-                      className={cn(
-                        "text-base font-semibold text-white",
-                        textClassName,
-                      )}
+                      className={cn("font-semibold text-white", textClassName)}
                     >
                       {title}
                     </Text>
